@@ -3,7 +3,6 @@ environment:
  PY_PYTHON: 2.7-32
 install:
   - py -m pip install markdown
-  
 
 build_script:
   - PY scons.py
@@ -21,7 +20,7 @@ deploy:
   provider: GitHub
   #Replace the secure text here with an encrypted github token (Google "appVeyor encrypted environment variables" for more info).
   auth_token:
-    secure: D6nDTGin+O15mi48HCwAAu4gXJyUMxQd31t84RdWEFlfzYfgbu4FTH2VLC6l46Fy
+    secure: gzq5ZIOaWo88zJkcTiRTYXTRzDxOTGoqAHOEpjmav29VKGK2pPojC+RyKK41rmyD
   artifact: addon
   draft: false
   prerelease: false
