@@ -435,7 +435,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_session.set_display_size()
 
 	def enter_remote_shell(self):
-		if self.master_transport is None:
+		if self.master_transport is None or not self.rs_focused:
 			return
 		self.set_receiving_braille(True)
 
