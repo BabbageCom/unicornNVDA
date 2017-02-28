@@ -1,4 +1,5 @@
 REMOTE_KEY = "kb:f11"
+REMOTE_SHELL_CLASSES=[u'TscShellContainerClass']
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -74,6 +75,7 @@ class GlobalPlugin(GlobalPlugin):
 		if cs['autoconnect'] and not self.master_session and not self.slave_session:
 			self.perform_autoconnect()
 		self.sd_focused = False
+		self.rs_focused = False
 
 	def perform_autoconnect(self):
 		cs = configuration.get_config()['controlserver']
@@ -388,7 +390,7 @@ class GlobalPlugin(GlobalPlugin):
 			self.set_receiving_braille(True)
 
 	def set_receiving_braille(self, state):
-		if state and self.master_session.patch_callbacks_added and braille.handler.enabled:
+		if state and self.master_session and self.master_session.patch_callbacks_added and braille.handler.enabled:
 			self.master_session.patcher.patch_braille_input()
 			braille.handler.enabled = False
 			if braille.handler._cursorBlinkTimer:
@@ -400,7 +402,7 @@ class GlobalPlugin(GlobalPlugin):
 				braille.handler._messageCallLater.Stop()
 				braille.handler._messageCallLater = None
 			self.local_machine.receiving_braille=True
-		elif not state:
+		elif self.master_session and not state:
 			self.master_session.patcher.unpatch_braille_input()
 			braille.handler.enabled = bool(braille.handler.displaySize)
 			self.local_machine.receiving_braille=False
@@ -413,6 +415,15 @@ class GlobalPlugin(GlobalPlugin):
 			#event_leaveFocus won't work for some reason
 			self.sd_focused = False
 			self.leave_secure_desktop()
+		nextHandler()
+
+	def event_foreground(self, obj, nextHandler):
+		if obj.windowClassName in REMOTE_SHELL_CLASSES:
+			self.rs_focused = True
+			self.enter_remote_shell()
+		elif self.rs_focused and obj.windowClassName not in REMOTE_SHELL_CLASSES:
+			self.rs_focused = False
+			self.leave_remote_shell()
 		nextHandler()
 
 	def enter_secure_desktop(self):
@@ -449,6 +460,14 @@ class GlobalPlugin(GlobalPlugin):
 		self.sd_relay = None
 		self.slave_transport.callback_manager.unregister_callback('msg_set_braille_info', self.on_master_display_change)
 		self.slave_session.set_display_size()
+
+	def enter_remote_shell(self):
+		if self.master_transport is None or not self.rs_focused:
+			return
+		self.set_receiving_braille(True)
+
+	def leave_remote_shell(self):
+		self.set_receiving_braille(False)
 
 	def on_master_display_change(self, **kwargs):
 		self.sd_relay.send(type='set_display_size', sizes=self.slave_session.master_display_sizes)
