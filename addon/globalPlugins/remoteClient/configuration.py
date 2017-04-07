@@ -14,6 +14,7 @@ configspec = BytesIO("""[connections]
 last_connected = list(default=list())
 [controlserver]
 autoconnect = boolean(default=False)
+dvc = boolean(default=False)
 self_hosted = boolean(default=False)
 connection_type = integer(default=0)
 host = string(default="")

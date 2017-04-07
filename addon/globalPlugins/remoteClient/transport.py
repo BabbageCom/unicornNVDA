@@ -5,12 +5,18 @@ import ssl
 import socket
 import select
 from collections import defaultdict
-from logging import getLogger
-log = getLogger('transport')
+#from logging import getLogger
+#log = getLogger('transport')
+from logHandler import log
 import callback_manager
+from ctypes import *
+from ctypes.wintypes import *
+import NVDAHelper
+import win32con
+from unicorn import *
 
 PROTOCOL_VERSION = 2
-
+DVCTYPES=('slave','master')
 
 class Transport(object):
 
@@ -151,11 +157,179 @@ class RelayTransport(TCPTransport):
 		else:
 			self.send('generate_key')
 
+class DVCTransport(Transport,UnicornCallbackHandler):
+
+	def __init__(self, serializer, timeout=60, connection_type=None, channel=None, protocol_version=PROTOCOL_VERSION):
+		Transport.__init__(self,serializer=serializer)
+		UnicornCallbackHandler.__init__(self)
+		if connection_type not in DVCTYPES:
+			raise ValueError("Unsupported connection type for DVC connection")
+		log.info("Connecting to DVC as %s" % connection_type)
+		self.lib=Unicorn(self)
+		self.channel = channel
+		self.opened = False
+		self.initialized = False
+		#Buffer to hold partially received data
+		self.buffer = ""
+		self.queue = Queue.Queue()
+		self.queue_thread = None
+		self.interrupt_event=threading.Event()
+		self.timeout = timeout
+		self.reconnector_thread = ConnectorThread(self,run_except=WindowsError)
+		self.connection_type = connection_type
+		self.protocol_version = protocol_version
+		self.callback_manager.register_callback('msg_protocol_version', self.handle_p2p)
+		self	.initialize_lib()
+
+	def initialize_lib(self):
+		if self.initialized:
+			return
+		res=self.lib.Initialize(DVCTYPES.index(self.connection_type),self.channel)
+		if res:
+			raise WinError(res)
+		self.initialized = True
+
+	def terminate_lib(self):
+		if not self.initialized:
+			return
+		res=self.lib.Terminate()
+		if res:
+			raise WinError(res)
+		self.initialized = False
+
+	def run(self):
+		self.interrupt_event.clear()
+		res=self.lib.Open()
+		if res:
+			if res in (1,87):
+				self.callback_manager.call_callbacks('transport_connection_failed')
+			raise WinError(res)		
+		if self.connection_type=='master' and not unicorn_client(): # Master
+			self.callback_manager.call_callbacks('transport_connection_failed')
+			raise WinError(res)
+		self.opened = True
+		self.queue_thread = threading.Thread(target=self.send_queue)
+		self.queue_thread.daemon = True
+		self.queue_thread.start()
+		self.interrupt_event.wait()
+		self.callback_manager.call_callbacks('transport_disconnected')
+		self._disconnect()
+
+	def handle_data(self, str):
+		data = self.buffer+str
+		self.buffer = ""
+		if data == '':
+			self._disconnect()
+			return
+		if '\n' not in data:
+			self.buffer += data
+			return
+		while '\n' in data:
+			line, sep, data = data.partition('\n')
+			self.parse(line)
+		self.buffer += data
+
+	def parse(self, line):
+		obj = self.serializer.deserialize(line)
+		if 'type' not in obj:
+			return
+		callback = "msg_"+obj['type']
+		del obj['type']
+		self.callback_manager.call_callbacks(callback, **obj)
+
+	def send_queue(self):
+		while True:
+			item = self.queue.get()
+			if item is None:
+				return
+			strbuf=create_string_buffer(item)
+			res=self.lib.Write(sizeof(strbuf),cast(strbuf,POINTER(BYTE)))
+			if res:
+				log.warning(WinError(res))
+				return
+
+	def send(self, type, origin=None, **kwargs):
+		obj = self.serializer.serialize(type=type, origin=origin or -1, **kwargs)
+		if self.connected:
+			self.queue.put(obj)
+
+	def _disconnect(self):
+		if not self.connected and not self.opened:
+			return
+		self.interrupt_event.set()
+		# Closing in this context is the equivalent for disconnecting the transport
+		res = self.lib.Close()
+		if res not in (0,21):
+			log.warning(WinError(res))
+		if self.queue_thread is not None:
+			self.queue.put(None)
+			self.queue_thread.join()
+		clear_queue(self.queue)
+		self.connected = False
+		self.opened = False
+
+	def close(self):
+		self.callback_manager.call_callbacks('transport_closing')
+		self.reconnector_thread.running = False
+		self._disconnect()
+		# Terminating in this context is the equivalent for closing the transport
+		res = self.terminate_lib()
+		if res:
+			raise WinError(res)
+		self.reconnector_thread = ConnectorThread(self,run_except=WindowsError)
+
+	def handle_p2p(self, version, **kwargs):
+		if version==PROTOCOL_VERSION:
+			self.send(type='client_joined', client=dict(id=-1, connection_type=self.connection_type))
+		else:
+			self.send(type='version_mismatch')
+
+	def _Connected(self):
+		log.info("Connected to remote protocol server")
+		return 0
+
+	def _Disconnected(self,dwDisconnectCode):
+		log.warning("Disconnected from remote protocol server")
+		self._disconnect()
+		return 0
+
+	def _Terminated(self):
+		log.info("Remote protocol client terminated")
+		self._disconnect()
+		return 0
+
+	def _OnNewChannelConnection(self):
+		log.info("DVC connection initiated from remote protocol server")
+		self.transport_connected()
+		self.send('protocol_version', version=self.protocol_version)		
+		return 0
+
+	def _OnDataReceived(self,cbSize,pBuffer):
+		pBuffer=cast(pBuffer,POINTER(c_char))
+		str="".join(pBuffer[i] for i in xrange(cbSize))
+		if "\x00" not in str:
+			self.buffer+=str
+		else:
+			self.handle_data(str.replace("\x00",""))
+		return 0
+
+	def _OnReadError(self,dwError):
+		log.warning("Error reading from DVC, %d"%dwError)
+		self.interrupt_event.set()
+		return 0
+
+	def _OnClose(self):
+		log.info("DVC close request received")
+		self.callback_manager.call_callbacks('msg_client_left', client=dict(id=-1))
+		self._disconnect()
+		return 0
+
 class ConnectorThread(threading.Thread):
 
-	def __init__(self, connector, connect_delay=5):
+	def __init__(self, connector, connect_delay=5, run_except=socket.error):
 		super(ConnectorThread, self).__init__()
 		self.connect_delay = connect_delay
+		self.run_except = run_except
 		self.running = True
 		self.connector = connector
 		self.name = self.name + "_connector_loop"
@@ -165,7 +339,8 @@ class ConnectorThread(threading.Thread):
 		while self.running:
 			try:
 				self.connector.run()
-			except socket.error:
+			except self.run_except as e:
+				log.debugWarning("Connection failed",exc_info=True)
 				time.sleep(self.connect_delay)
 				continue
 			else:

@@ -11,6 +11,7 @@ import nvda_patcher
 from collections import defaultdict
 import connection_info
 import hashlib
+from transport import PROTOCOL_VERSION
 
 class RemoteSession(object):
 
@@ -57,6 +58,7 @@ class SlaveSession(RemoteSession):
 		self.master_display_sizes=[]
 		self.last_client_index = None
 		self.transport.callback_manager.register_callback('msg_index', self.update_index)
+		self.transport.callback_manager.register_callback('transport_disconnected', self.handle_disconnected)
 		self.transport.callback_manager.register_callback('transport_closing', self.handle_transport_closing)
 		self.patcher = nvda_patcher.NVDASlavePatcher()
 		self.patch_callbacks_added = False
@@ -66,7 +68,6 @@ class SlaveSession(RemoteSession):
 		self.transport.callback_manager.register_callback('msg_set_display_size', self.set_display_size)
 		self.transport.callback_manager.register_callback('msg_braille_input', self.local_machine.braille_input)
 		self.transport.callback_manager.register_callback('msg_send_SAS', self.local_machine.send_SAS)
-
 
 	def get_connection_info(self):
 		hostname, port = self.transport.address
@@ -88,15 +89,14 @@ class SlaveSession(RemoteSession):
 		for client in clients:
 			self.handle_client_connected(client)
 
+	def handle_disconnected(self):
+		self.masters.clear()
+
 	def handle_transport_closing(self):
 		self.patcher.unpatch()
 		if self.patch_callbacks_added:
 			self.remove_patch_callbacks()
 			self.patch_callbacks_added = False
-
-	def handle_transport_disconnected(self):
-		self.patcher.orig_beep(1000, 300)
-		self.patcher.unpatch()
 
 	def handle_client_disconnected(self, client=None, **kwargs):
 		self.patcher.orig_beep(108, 300)

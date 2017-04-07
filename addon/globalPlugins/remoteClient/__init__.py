@@ -19,7 +19,7 @@ import configuration
 import gui
 import beep_sequence
 import speech
-from transport import RelayTransport
+from transport import RelayTransport,DVCTransport
 import braille
 import local_machine
 import serializer
@@ -45,6 +45,7 @@ import bridge
 from socket_utils import SERVER_PORT, address_to_hostport, hostport_to_address
 import api
 import ssl
+import callback_manager
 
 class GlobalPlugin(GlobalPlugin):
 	scriptCategory = _("NVDA Remote")
@@ -52,6 +53,7 @@ class GlobalPlugin(GlobalPlugin):
 	def __init__(self, *args, **kwargs):
 		super(GlobalPlugin, self).__init__(*args, **kwargs)
 		self.local_machine = local_machine.LocalMachine()
+		self.callback_manager = callback_manager.CallbackManager()
 		self.slave_session = None
 		self.master_session = None
 		self.create_menu()
@@ -87,9 +89,9 @@ class GlobalPlugin(GlobalPlugin):
 		else:
 			address = address_to_hostport(cs['host'])
 		if cs['connection_type']==0:
-			self.connect_as_slave(address, channel)
+			self.connect_as_dvc_slave(channel) if cs['dvc'] else self.connect_as_slave(address, channel)
 		else:
-			self.connect_as_master(address, channel)
+			self.connect_as_dvc_master(channel) if cs['dvc'] else self.connect_as_master(address, channel)
 
 	def create_menu(self):
 		self.menu = wx.Menu()
@@ -229,6 +231,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.copy_link_item.Enable(False)
 
 	def disconnect_as_master(self):
+		self.callback_manager.call_callbacks('transport_disconnect', connection_type='master')
 		self.master_transport.close()
 		self.master_transport = None
 		self.master_session = None
@@ -251,13 +254,14 @@ class GlobalPlugin(GlobalPlugin):
 		self.key_modified = False
 
 	def disconnect_as_slave(self):
+		self.callback_manager.call_callbacks('transport_disconnect', connection_type='slave')
 		self.slave_transport.close()
 		self.slave_transport = None
 		self.slave_session = None
 
 	def on_connected_as_master_failed(self):
 		if self.master_transport.successful_connects == 0:
-			self.disconnect_as_master()
+			self.disconnect()
 			# Translators: Title of the connection error dialog.
 			gui.messageBox(parent=gui.mainFrame, caption=_("Error Connecting"),
 			# Translators: Message shown when cannot connect to the remote computer.
@@ -283,21 +287,25 @@ class GlobalPlugin(GlobalPlugin):
 		def handle_dlg_complete(dlg_result):
 			if dlg_result != wx.ID_OK:
 				return
+			channel = dlg.panel.key.GetValue()
 			if dlg.client_or_server.GetSelection() == 0: #client
 				server_addr = dlg.panel.host.GetValue()
 				server_addr, port = address_to_hostport(server_addr)
-				channel = dlg.panel.key.GetValue()
 				if dlg.connection_type.GetSelection() == 0:
 					self.connect_as_master((server_addr, port), channel)
 				else:
 					self.connect_as_slave((server_addr, port), channel)
-			else: #We want a server
-				channel = dlg.panel.key.GetValue()
+			elif dlg.client_or_server.GetSelection() == 1: #We want a server
 				self.start_control_server(int(dlg.panel.port.GetValue()), channel)
 				if dlg.connection_type.GetSelection() == 0:
 					self.connect_as_master(('127.0.0.1', int(dlg.panel.port.GetValue())), channel)
 				else:
 					self.connect_as_slave(('127.0.0.1', int(dlg.panel.port.GetValue())), channel)
+			elif dlg.client_or_server.GetSelection() == 2:
+				if dlg.connection_type.GetSelection() == 0:
+					self.connect_as_dvc_master(channel)
+				else:
+					self.connect_as_dvc_slave(channel)
 		gui.runScriptModalDialog(dlg, callback=handle_dlg_complete)
 
 	def on_connected_as_master(self):
@@ -312,6 +320,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.hook_thread.daemon = True
 		self.hook_thread.start()
 		self.bindGesture(REMOTE_KEY, "sendKeys")
+		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
 		# Translators: Presented when connected to the remote computer.
 		ui.message(_("Connected!"))
 		beep_sequence.beep_sequence_async((440, 60), (660, 60))
@@ -342,17 +351,72 @@ class GlobalPlugin(GlobalPlugin):
 	def on_connected_as_slave(self):
 		log.info("Control connector connected")
 		beep_sequence.beep_sequence_async((720, 100), 50, (720, 100), 50, (720, 100))
+		self.callback_manager.call_callbacks('transport_connect', connection_type='slave', transport=self.slave_transport)
 		# Translators: Presented in direct (client to server) remote connection when the controlled computer is ready.
 		speech.speakMessage(_("Connected to control server"))
 		self.push_clipboard_item.Enable(True)
 		self.copy_link_item.Enable(True)
 		configuration.write_connection_to_config(self.slave_transport.address)
 
+	def on_connected_as_dvc_slave(self):
+		log.info("Control connector connected")
+		self.callback_manager.call_callbacks('transport_connect', connection_type='slave', transport=self.slave_transport)
+		self.push_clipboard_item.Enable(True)
+
 	def start_control_server(self, server_port, channel):
 		self.server = server.Server(server_port, channel)
 		server_thread = threading.Thread(target=self.server.run)
 		server_thread.daemon = True
 		server_thread.start()
+
+	def on_connected_as_dvc_master(self):
+		self.mute_item.Enable(True)
+		self.push_clipboard_item.Enable(True)
+		self.send_ctrl_alt_del_item.Enable(True)
+		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
+		# Translators: Presented when connected to the remote computer.
+		ui.message(_("Connected!"))
+		beep_sequence.beep_sequence((440, 60), (660, 60))
+
+	def connect_as_dvc_master(self, key):
+		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master', channel=key)
+		self.master_session = MasterSession(transport=transport, local_machine=self.local_machine)
+		transport.callback_manager.register_callback('transport_connected', self.on_connected_as_dvc_master)
+		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_dvc_master_failed)
+		transport.callback_manager.register_callback('transport_closing', self.disconnecting_as_master)
+		transport.callback_manager.register_callback('transport_disconnected', self.on_disconnected_as_master)
+		self.master_transport = transport
+		self.master_transport.reconnector_thread.start()
+		self.disconnect_item.Enable(True)
+		self.connect_item.Enable(False)
+
+	def connect_as_dvc_slave(self, key):
+		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave', channel=key)
+		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine)
+		self.slave_transport = transport
+		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_connected_as_dvc_slave)
+		self.slave_transport.reconnector_thread.start()
+		self.disconnect_item.Enable(True)
+		self.connect_item.Enable(False)
+		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_dvc_slave_failed)
+
+	def on_connected_as_dvc_master_failed(self):
+		self.disconnect_item.Enable(False)
+		self.connect_item.Enable(True)
+		if self.master_transport.successful_connects == 0:
+			self.disconnect()
+			# Translators: Title of the connection error dialog.
+			gui.messageBox(parent=gui.mainFrame, caption=_("Error Connecting"),
+			# Translators: Message shown when cannot connect to the remote computer.
+			message=_("Unable to connect to the virtual channel. Please make sure that your client is set up correctly"), style=wx.OK | wx.ICON_WARNING)
+
+	def on_connected_as_dvc_slave_failed(self):
+		if self.slave_transport.successful_connects == 0:
+			self.disconnect()
+			# Translators: Title of the connection error dialog.
+			gui.messageBox(parent=gui.mainFrame, caption=_("Error Connecting"),
+			# Translators: Message shown when cannot connect to the remote computer.
+			message=_("Unable to connect to the virtual channel. Please make sure that you are in a remote session and that your client is set up correctly"), style=wx.OK | wx.ICON_WARNING)
 
 	def hook(self):
 		log.debug("Hook thread start")
@@ -515,5 +579,3 @@ class GlobalPlugin(GlobalPlugin):
 	__gestures = {
 		"kb:alt+NVDA+pageDown": "disconnect",
 	}
-
-
