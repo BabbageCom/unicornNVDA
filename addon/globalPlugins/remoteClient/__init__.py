@@ -1,5 +1,5 @@
 REMOTE_KEY = "kb:f11"
-REMOTE_SHELL_CLASSES=[u'TscShellContainerClass']
+REMOTE_SHELL_CLASSES={u'TscShellContainerClass', u'CtxICADisp'}
 import os
 import sys
 try:
