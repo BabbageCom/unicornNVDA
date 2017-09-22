@@ -85,7 +85,7 @@ class Unicorn(object):
 		self.SetCallbacks(*callbackPointers)
 
 	def registerFunctions(self):
-		self.Initialize=WINFUNCTYPE(DWORD,c_uint8,c_char_p)(('Unicorn_Initialize',self.lib),((1,'connectionType'),(1,'channelName')))
+		self.Initialize=WINFUNCTYPE(DWORD,c_uint8)(('Unicorn_Initialize',self.lib),((1,'connectionType'),))
 		self.Open=WINFUNCTYPE(DWORD)(('Unicorn_Open',self.lib))
 		self.Write=WINFUNCTYPE(DWORD,DWORD,POINTER(BYTE))(('Unicorn_Write',self.lib),((1,'cbSize'),(1,'pBuffer')))
 		self.Close=WINFUNCTYPE(DWORD)(('Unicorn_Close',self.lib))

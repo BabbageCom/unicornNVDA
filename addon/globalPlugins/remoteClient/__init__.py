@@ -92,9 +92,9 @@ class GlobalPlugin(GlobalPlugin):
 		else:
 			address = address_to_hostport(cs['host'])
 		if cs['connection_type']==0:
-			self.connect_as_dvc_slave(channel) if cs['dvc'] else self.connect_as_slave(address, channel)
+			self.connect_as_dvc_slave() if cs['dvc'] else self.connect_as_slave(address, channel)
 		else:
-			self.connect_as_dvc_master(channel) if cs['dvc'] else self.connect_as_master(address, channel)
+			self.connect_as_dvc_master() if cs['dvc'] else self.connect_as_master(address, channel)
 
 	def create_menu(self):
 		self.menu = wx.Menu()
@@ -303,7 +303,8 @@ class GlobalPlugin(GlobalPlugin):
 		def handle_dlg_complete(dlg_result):
 			if dlg_result != wx.ID_OK:
 				return
-			channel = dlg.panel.key.GetValue()
+			if dlg.client_or_server.GetSelection() != 2:
+				channel = dlg.panel.key.GetValue()
 			if dlg.client_or_server.GetSelection() == 0: #client
 				server_addr = dlg.panel.host.GetValue()
 				server_addr, port = address_to_hostport(server_addr)
@@ -319,9 +320,9 @@ class GlobalPlugin(GlobalPlugin):
 					self.connect_as_slave(('127.0.0.1', int(dlg.panel.port.GetValue())), channel)
 			elif dlg.client_or_server.GetSelection() == 2:
 				if dlg.connection_type.GetSelection() == 0:
-					self.connect_as_dvc_master(channel)
+					self.connect_as_dvc_master()
 				else:
-					self.connect_as_dvc_slave(channel)
+					self.connect_as_dvc_slave()
 		gui.runScriptModalDialog(dlg, callback=handle_dlg_complete)
 
 	def on_connected_as_master(self):
@@ -400,8 +401,8 @@ class GlobalPlugin(GlobalPlugin):
 		ui.message(_("Connected!"))
 		beep_sequence.beep_sequence((440, 60), (660, 60))
 
-	def connect_as_dvc_master(self, key):
-		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master', channel=key)
+	def connect_as_dvc_master(self):
+		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master')
 		self.master_session = MasterSession(transport=transport, local_machine=self.local_machine)
 		transport.callback_manager.register_callback('transport_connected', self.on_connected_as_dvc_master)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_dvc_master_failed)
@@ -412,8 +413,8 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_item.Enable(True)
 		self.connect_item.Enable(False)
 
-	def connect_as_dvc_slave(self, key):
-		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave', channel=key)
+	def connect_as_dvc_slave(self):
+		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine)
 		self.slave_transport = transport
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_connected_as_dvc_slave)

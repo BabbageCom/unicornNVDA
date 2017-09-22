@@ -113,10 +113,6 @@ class DVCPanel(wx.Panel):
 
 	def __init__(self, parent=None, id=wx.ID_ANY):
 		super(DVCPanel, self).__init__(parent, id)
-		sizer = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
-		# Translators: Label of the edit field to enter key (password) to secure the remote connection.
-		self.key = sizer.addLabeledControl(_("&Key:"), wx.TextCtrl)
-		self.SetSizerAndFit(sizer.sizer)
 
 class DirectConnectDialog(wx.Dialog):
 
@@ -166,12 +162,9 @@ class DirectConnectDialog(wx.Dialog):
 		if self.client_or_server.GetSelection() == 0 and (not self.panel.host.GetValue() or not self.panel.key.GetValue()):
 			gui.messageBox(_("Both host and key must be set."), _("Error"), wx.OK | wx.ICON_ERROR)
 			self.panel.host.SetFocus()
-		elif self.client_or_server.GetSelection() == 1 and not self.panel.port.GetValue() or not self.panel.key.GetValue():
+		elif self.client_or_server.GetSelection() == 1 and (not self.panel.port.GetValue() or not self.panel.key.GetValue()):
 			gui.messageBox(_("Both port and key must be set."), _("Error"), wx.OK | wx.ICON_ERROR)
 			self.panel.port.SetFocus()
-		elif self.client_or_server.GetSelection() == 2 and not self.panel.key.GetValue():
-			gui.messageBox(_("Key must be set."), _("Error"), wx.OK | wx.ICON_ERROR)
-			self.panel.key.SetFocus()
 		else:
 			evt.Skip()
 
@@ -222,7 +215,7 @@ class OptionsDialog(wx.Dialog):
 		self.connection_type.Enable(state and dvcState)
 		if state and not dvcState:
 			self.connection_type.SetSelection(0)
-		self.key.Enable(state)
+		self.key.Enable(self.client_or_server.GetSelection()!=2)
 		self.host.Enable(self.client_or_server.GetSelection()==0 and state)
 		self.port.Enable(self.client_or_server.GetSelection()==1 and state)
 
