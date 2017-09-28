@@ -169,7 +169,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		self.opened = False
 		self.initialized = False
 		#Buffer to hold partially received data
-		self.buffer = ""
+		self.buffer = u""
 		self.queue = Queue.Queue()
 		self.queue_thread = None
 		self.interrupt_event=threading.Event()
@@ -216,21 +216,21 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 
 	def handle_data(self, str):
 		data = self.buffer+str
-		self.buffer = ""
-		if data == '':
+		self.buffer = u""
+		if data == u'':
 			self._disconnect()
 			return
-		if '\n' not in data:
+		if u'\n' not in data:
 			self.buffer += data
 			return
-		while '\n' in data:
-			line, sep, data = data.partition('\n')
+		while u'\n' in data:
+			line, sep, data = data.partition(u'\n')
 			self.parse(line)
 		self.buffer += data
 
 	def parse(self, line):
 		obj = self.serializer.deserialize(line)
-		if 'type' not in obj:
+		if u'type' not in obj:
 			return
 		callback = "msg_"+obj['type']
 		del obj['type']
@@ -241,7 +241,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 			item = self.queue.get()
 			if item is None:
 				return
-			strbuf=create_string_buffer(item)
+			strbuf=create_unicode_buffer(item)
 			res=self.lib.Write(sizeof(strbuf),cast(strbuf,POINTER(BYTE)))
 			if res:
 				log.warning(WinError(res))
@@ -304,12 +304,11 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		return 0
 
 	def _OnDataReceived(self,cbSize,pBuffer):
-		pBuffer=cast(pBuffer,POINTER(c_char))
-		str="".join(pBuffer[i] for i in xrange(cbSize))
-		if "\x00" not in str:
-			self.buffer+=str
-		else:
-			self.handle_data(str.replace("\x00",""))
+		pBuffer=cast(pBuffer,c_wchar_p)
+		str=pBuffer.value
+		pBufferSize=(len(str)+1)*sizeof(c_wchar)
+		assert pBufferSize==cbSize, "size of pBuffer %d not equal to cbSize %d"%(pBufferSize,cbSize)
+		self.handle_data(str)
 		return 0
 
 	def _OnReadError(self,dwError):
