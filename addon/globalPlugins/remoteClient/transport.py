@@ -305,11 +305,12 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		return 0
 
 	def _OnDataReceived(self,cbSize,pBuffer):
-		pBuffer=cast(pBuffer,c_wchar_p)
-		str=pBuffer.value
-		pBufferSize=(len(str)+1)*sizeof(c_wchar)
-		assert pBufferSize==cbSize, "size of pBuffer %d not equal to cbSize %d"%(pBufferSize,cbSize)
-		self.handle_data(str)
+		pBuffer=cast(pBuffer,POINTER(c_wchar*(cbSize/sizeof(c_wchar))))
+		str=u"".join(pBuffer.contents)
+		if u"\x00" not in str:
+			self.buffer+=str
+		else:
+			self.handle_data(str.replace(u"\x00",u""))
 		return 0
 
 	def _OnReadError(self,dwError):
