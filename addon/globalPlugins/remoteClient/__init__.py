@@ -396,9 +396,12 @@ class GlobalPlugin(GlobalPlugin):
 		self.push_clipboard_item.Enable(True)
 		self.send_ctrl_alt_del_item.Enable(True)
 		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
+		if api.getForegroundObject().windowClassName in REMOTE_SHELL_CLASSES:
+			self.rs_focused = True
+			self.enter_remote_shell()
 		# Translators: Presented when connected to the remote computer.
 		ui.message(_("Connected!"))
-		beep_sequence.beep_sequence((440, 60), (660, 60))
+		beep_sequence.beep_sequence_async((440, 60), (660, 60))
 
 	def connect_as_dvc_master(self, key):
 		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master', channel=key)
