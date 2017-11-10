@@ -120,17 +120,21 @@ class ServerPanel(wx.Panel):
 
 class DirectConnectDialog(wx.Dialog):
 
-	def __init__(self, parent, id, title):
+	def __init__(self, parent, id, title, allowServer=True, allowMaster=True):
 		super(DirectConnectDialog, self).__init__(parent, id, title=title)
 		main_sizer = self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 		self.client_or_server = wx.RadioBox(self, wx.ID_ANY, choices=(_("Client"), _("Server")), style=wx.RA_VERTICAL)
 		self.client_or_server.Bind(wx.EVT_RADIOBOX, self.on_client_or_server)
 		self.client_or_server.SetSelection(0)
 		main_sizer.Add(self.client_or_server)
+		if not allowServer:
+			self.client_or_server.Disable()
 		choices = [_("Control another machine"), _("Allow this machine to be controlled")]
 		self.connection_type = wx.RadioBox(self, wx.ID_ANY, choices=choices, style=wx.RA_VERTICAL)
-		self.connection_type.SetSelection(0)
+		self.connection_type.SetSelection(int(not allowMaster))
 		main_sizer.Add(self.connection_type)
+		if not allowMaster:
+			self.connection_type.Disable()
 		self.container = wx.Panel(parent=self)
 		self.panel = ClientPanel(parent=self.container)
 		main_sizer.Add(self.container)
