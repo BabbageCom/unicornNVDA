@@ -49,6 +49,7 @@ class SlaveSession(RemoteSession):
 	"""Session that runs on the slave and manages state."""
 
 	def __init__(self, *args, **kwargs):
+		is_secondary = kwargs.pop("is_secondary",False)
 		super(SlaveSession, self).__init__(*args, **kwargs)
 		self.transport.callback_manager.register_callback('msg_client_joined', self.handle_client_connected)
 		self.transport.callback_manager.register_callback('msg_client_left', self.handle_client_disconnected)
@@ -58,7 +59,7 @@ class SlaveSession(RemoteSession):
 		self.last_client_index = None
 		self.transport.callback_manager.register_callback('msg_index', self.update_index)
 		self.transport.callback_manager.register_callback('transport_closing', self.handle_transport_closing)
-		self.patcher = nvda_patcher.NVDASlavePatcher()
+		self.patcher = nvda_patcher.NVDASlavePatcher(is_secondary=is_secondary)
 		self.patch_callbacks_added = False
 		self.transport.callback_manager.register_callback('msg_channel_joined', self.handle_channel_joined)
 		self.transport.callback_manager.register_callback('msg_set_clipboard_text', self.local_machine.set_clipboard_text)
@@ -216,9 +217,9 @@ class MasterSession(RemoteSession):
 			self.patch_callbacks_added = False
 		tones.beep(108, 300)
 
-	def send_braille_info(self):
+	def send_braille_info(self, **kwargs):
 		display=braille.handler.display
-		self.transport.send(type="set_braille_info", name=display.name, numCells=display.numCells)
+		self.transport.send(type="set_braille_info", name=display.name, numCells=display.numCells or braille.handler.displaySize)
 
 	def braille_input(self,**kwargs):
 		self.transport.send(type="braille_input", **kwargs)

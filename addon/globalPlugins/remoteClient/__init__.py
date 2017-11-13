@@ -59,6 +59,7 @@ class GlobalPlugin(GlobalPlugin):
 		url_handler.register_url_handler()
 		self.master_transport = None
 		self.slave_transport = None
+		self._secondary_started_server = False
 		self.server = None
 		self.hook_thread = None
 		self.sending_keys = False
@@ -99,6 +100,14 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_item = self.menu.Append(wx.ID_ANY, _("Disconnect"), _("Disconnect from another computer running NVDA Remote Access"))
 		self.disconnect_item.Enable(False)
 		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_disconnect_item, self.disconnect_item)
+		# Translators: Item in NVDA Remote submenu to connect to a secondary remote computer.
+		self.connect_secondary_item = self.menu.Append(wx.ID_ANY, _("Connect second session..."), _("Connect to a second computer running NVDA Remote Access"))
+		self.connect_secondary_item.Enable(False)
+		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.do_connect_secondary, self.connect_secondary_item)
+		# Translators: Item in NVDA Remote submenu to disconnect from a secondary remote computer.
+		self.disconnect_secondary_item = self.menu.Append(wx.ID_ANY, _("Disconnect second session"), _("Disconnect from a second computer running NVDA Remote Access"))
+		self.disconnect_secondary_item.Enable(False)
+		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_disconnect_secondary_item, self.disconnect_secondary_item)
 		# Translators: Menu item in NvDA Remote submenu to mute speech and sounds from the remote computer.
 		self.mute_item = self.menu.Append(wx.ID_ANY, _("Mute remote"), _("Mute speech and sounds from the remote computer"))
 		self.mute_item.SetCheckable(True)
@@ -131,6 +140,12 @@ class GlobalPlugin(GlobalPlugin):
 		self.menu.RemoveItem(self.disconnect_item)
 		self.disconnect_item.Destroy()
 		self.disconnect_item=None
+		self.menu.RemoveItem(self.connect_secondary_item)
+		self.connect_secondary_item.Destroy()
+		self.connect_secondary_item=None
+		self.menu.RemoveItem(self.disconnect_secondary_item)
+		self.disconnect_secondary_item.Destroy()
+		self.disconnect_secondary_item=None
 		self.menu.RemoveItem(self.mute_item)
 		self.mute_item.Destroy()
 		self.mute_item=None
@@ -167,6 +182,10 @@ class GlobalPlugin(GlobalPlugin):
 	def on_disconnect_item(self, evt):
 		evt.Skip()
 		self.disconnect()
+
+	def on_disconnect_secondary_item(self, evt):
+		evt.Skip()
+		self.disconnect_secondary()
 
 	def on_mute_item(self, evt):
 		evt.Skip()
@@ -224,6 +243,7 @@ class GlobalPlugin(GlobalPlugin):
 	def disconnect(self):
 		if self.master_transport is None and self.slave_transport is None:
 			return
+		self.disconnect_secondary()
 		if self.server is not None:
 			self.server.close()
 			self.server = None
@@ -234,6 +254,7 @@ class GlobalPlugin(GlobalPlugin):
 		beep_sequence.beep_sequence_async((660, 60), (440, 60))
 		self.disconnect_item.Enable(False)
 		self.connect_item.Enable(True)
+		self.connect_secondary_item.Enable(False)
 		self.push_clipboard_item.Enable(False)
 		self.copy_link_item.Enable(False)
 
@@ -265,6 +286,18 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_transport.close()
 		self.slave_transport = None
 		self.slave_session = None
+
+	def disconnect_secondary(self):
+		if self.slave_transport is None:
+			return
+		if self.server is not None and self._secondary_started_server:
+			self.server.close()
+			self.server = None
+			self._secondary_started_server = False
+		self.disconnect_as_slave()
+		beep_sequence.beep_sequence_async((880, 100), 50, (660, 100), 50, (550, 100))
+		self.disconnect_secondary_item.Enable(False)
+		self.connect_secondary_item.Enable(bool(self.master_transport))
 
 	def on_connected_as_master_failed(self):
 		if self.master_transport.successful_connects == 0:
@@ -311,6 +344,25 @@ class GlobalPlugin(GlobalPlugin):
 					self.connect_as_slave(('127.0.0.1', int(dlg.panel.port.GetValue())), channel)
 		gui.runScriptModalDialog(dlg, callback=handle_dlg_complete)
 
+	def do_connect_secondary(self, evt):
+		evt.Skip()
+		# Translators: Title of the secondary connect dialog.
+		dlg = dialogs.DirectConnectDialog(parent=gui.mainFrame, id=wx.ID_ANY, title=_("Connect Second Session"), allowMaster=False, allowServer=bool(not self.server))
+		def handle_dlg_complete(dlg_result):
+			if dlg_result != wx.ID_OK:
+				return
+			if dlg.client_or_server.GetSelection() == 0: #client
+				server_addr = dlg.panel.host.GetValue()
+				server_addr, port = address_to_hostport(server_addr)
+				channel = dlg.panel.key.GetValue()
+				self.connect_secondary((server_addr, port), channel)
+			else: #We want a server
+				channel = dlg.panel.key.GetValue()
+				self.start_control_server(int(dlg.panel.port.GetValue()), channel)
+				self._secondary_started_server = True
+				self.connect_secondary(('127.0.0.1', int(dlg.panel.port.GetValue())), channel)
+		gui.runScriptModalDialog(dlg, callback=handle_dlg_complete)
+
 	def on_connected_as_master(self):
 		configuration.write_connection_to_config(self.master_transport.address)
 		self.disconnect_item.Enable(True)
@@ -319,6 +371,8 @@ class GlobalPlugin(GlobalPlugin):
 		self.push_clipboard_item.Enable(True)
 		self.copy_link_item.Enable(True)
 		self.send_ctrl_alt_del_item.Enable(True)
+		self.connect_secondary_item.Enable(bool(not self.slave_transport))
+		self.disconnect_secondary_item.Enable(bool(self.slave_transport))
 		self.hook_thread = threading.Thread(target=self.hook)
 		self.hook_thread.daemon = True
 		self.hook_thread.start()
@@ -358,6 +412,22 @@ class GlobalPlugin(GlobalPlugin):
 		self.push_clipboard_item.Enable(True)
 		self.copy_link_item.Enable(True)
 		configuration.write_connection_to_config(self.slave_transport.address)
+
+	def connect_secondary(self, address, key):
+		transport = RelayTransport(serializer=serializer.JSONSerializer(), address=address, channel=key, connection_type='slave')
+		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine, is_secondary=True)
+		self.slave_transport = transport
+		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_secondary_connected)
+		self.slave_transport.callback_manager.register_callback('msg_set_braille_info', self.master_session.send_braille_info)
+		self.slave_transport.reconnector_thread.start()
+		self.disconnect_secondary_item.Enable(True)
+		self.connect_secondary_item.Enable(False)
+
+	def on_secondary_connected(self):
+		log.info("Secondary connection successful")
+		beep_sequence.beep_sequence_async((550, 100), 50, (660, 100), 50, (880, 100))
+		# Translators: Presented in remote connection when the secondary session is ready.
+		speech.speakMessage(_("Secondary session connected"))
 
 	def start_control_server(self, server_port, channel):
 		self.server = server.Server(server_port, channel)
@@ -438,8 +508,8 @@ class GlobalPlugin(GlobalPlugin):
 		server_thread.daemon = True
 		server_thread.start()
 		self.sd_relay = RelayTransport(address=('127.0.0.1', port), serializer=serializer.JSONSerializer(), channel=channel)
-		self.sd_relay.callback_manager.register_callback('msg_client_joined', self.on_master_display_change)
-		self.slave_transport.callback_manager.register_callback('msg_set_braille_info', self.on_master_display_change)
+		self.sd_relay.callback_manager.register_callback('msg_client_joined', self.sd_on_master_display_change)
+		self.slave_transport.callback_manager.register_callback('msg_set_braille_info', self.sd_on_master_display_change)
 		self.sd_bridge = bridge.BridgeTransport(self.slave_transport, self.sd_relay)
 		relay_thread = threading.Thread(target=self.sd_relay.run)
 		relay_thread.daemon = True
@@ -457,10 +527,10 @@ class GlobalPlugin(GlobalPlugin):
 		self.sd_server = None
 		self.sd_relay.close()
 		self.sd_relay = None
-		self.slave_transport.callback_manager.unregister_callback('msg_set_braille_info', self.on_master_display_change)
+		self.slave_transport.callback_manager.unregister_callback('msg_set_braille_info', self.sd_on_master_display_change)
 		self.slave_session.set_display_size()
 
-	def on_master_display_change(self, **kwargs):
+	def sd_on_master_display_change(self, **kwargs):
 		self.sd_relay.send(type='set_display_size', sizes=self.slave_session.master_display_sizes)
 
 	def handle_secure_desktop(self):
