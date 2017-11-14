@@ -37,7 +37,7 @@ def vdp_rdpvcbridge_path():
 
 def unicorn_client():
 	try:
-		return bool(winreg.OpenKey(winreg.HKEY_CURRENT_USER,"SOFTWARE\\Microsoft\\Terminal Server Client\\Default\\Addins\\UnicornDVCPlugin"))
+		return bool(winreg.OpenKey(winreg.HKEY_CLASSES_ROOT,r"CLSID\{E8BACC05-64F6-4534-9764-FB6698CA3362}",0,winreg.KEY_READ|winreg.KEY_WOW64_32KEY))
 	except WindowsError:
 		return False
 
