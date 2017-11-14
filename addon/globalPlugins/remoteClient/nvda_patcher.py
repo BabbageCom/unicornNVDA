@@ -43,8 +43,9 @@ class NVDAPatcher(callback_manager.CallbackManager):
 class NVDASlavePatcher(NVDAPatcher):
 	"""Class to manage patching of synth, tones, nvwave, and braille."""
 
-	def __init__(self):
+	def __init__(self, is_secondary=False):
 		super(NVDASlavePatcher, self).__init__()
+		self.is_secondary = is_secondary
 		self.orig_speak = None
 		self.orig_cancel = None
 		self.orig_get_lastIndex  = None
@@ -136,14 +137,16 @@ class NVDASlavePatcher(NVDAPatcher):
 		braille.handler.enabled = bool(braille.handler.displaySize)
 
 	def patch(self):
-		super(NVDASlavePatcher, self).patch()
+		if not self.is_secondary:
+			super(NVDASlavePatcher, self).patch()
 		self.patch_synth()
 		self.patch_tones()
 		self.patch_nvwave()
 		self.patch_braille()
 
 	def unpatch(self):
-		super(NVDASlavePatcher, self).unpatch()
+		if not self.is_secondary:
+			super(NVDASlavePatcher, self).unpatch()
 		self.unpatch_synth()
 		self.unpatch_tones()
 		self.unpatch_nvwave()
