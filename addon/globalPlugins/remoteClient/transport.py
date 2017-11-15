@@ -159,13 +159,13 @@ class RelayTransport(TCPTransport):
 
 class DVCTransport(Transport,UnicornCallbackHandler):
 
-	def __init__(self, serializer, timeout=60, connection_type=None, channel=None, protocol_version=PROTOCOL_VERSION):
+	def __init__(self, serializer, timeout=60, connection_type=None, channel=None, protocol_version=PROTOCOL_VERSION, libPath=None):
 		Transport.__init__(self,serializer=serializer)
 		UnicornCallbackHandler.__init__(self)
 		if connection_type not in DVCTYPES:
 			raise ValueError("Unsupported connection type for DVC connection")
 		log.info("Connecting to DVC as %s" % connection_type)
-		self.lib=Unicorn(self)
+		self.lib=Unicorn(self, libPath=libPath)
 		self.channel = channel
 		self.opened = False
 		self.initialized = False

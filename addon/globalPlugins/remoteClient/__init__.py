@@ -49,6 +49,8 @@ from socket_utils import SERVER_PORT, address_to_hostport, hostport_to_address
 import api
 import ssl
 import callback_manager
+import installer
+import unicorn
 
 class GlobalPlugin(GlobalPlugin):
 	scriptCategory = _("NVDA Remote")
@@ -250,10 +252,10 @@ class GlobalPlugin(GlobalPlugin):
 	def disconnect(self):
 		if self.master_transport is None and self.slave_transport is None:
 			return
-		self.disconnect_secondary()
 		if self.server is not None:
 			self.server.close()
 			self.server = None
+			self._secondary_started_server = False
 		if self.master_transport is not None:
 			self.disconnect_as_master()
 		if self.slave_transport is not None:
@@ -261,6 +263,7 @@ class GlobalPlugin(GlobalPlugin):
 		beep_sequence.beep_sequence_async((660, 60), (440, 60))
 		self.disconnect_item.Enable(False)
 		self.connect_item.Enable(True)
+		self.disconnect_secondary_item.Enable(False)
 		self.connect_secondary_item.Enable(False)
 		self.push_clipboard_item.Enable(False)
 		self.copy_link_item.Enable(False)
@@ -364,13 +367,12 @@ class GlobalPlugin(GlobalPlugin):
 		def handle_dlg_complete(dlg_result):
 			if dlg_result != wx.ID_OK:
 				return
+			channel = dlg.panel.key.GetValue()
 			if dlg.client_or_server.GetSelection() == 0: #client
 				server_addr = dlg.panel.host.GetValue()
 				server_addr, port = address_to_hostport(server_addr)
-				channel = dlg.panel.key.GetValue()
 				self.connect_secondary((server_addr, port), channel)
 			elif dlg.client_or_server.GetSelection() == 1: #We want a server
-				channel = dlg.panel.key.GetValue()
 				self.start_control_server(int(dlg.panel.port.GetValue()), channel)
 				self._secondary_started_server = True
 				self.connect_secondary(('127.0.0.1', int(dlg.panel.port.GetValue())), channel)
@@ -452,7 +454,18 @@ class GlobalPlugin(GlobalPlugin):
 		self.connect_secondary_item.Enable(False)
 
 	def connect_secondary_dvc(self, key):
-		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave', channel=key)
+		oldLibPath = unicorn.unicorn_lib_path()
+		if not oldLibPath:
+			self.on_secondary_dvc_unavailable()
+			return
+		libPath = os.path.join(os.path.abspath(globalVars.appArgs.configPath),u"UnicornDVCAppLib2.dll")
+		if not os.path.isfile(libPath):
+			try:
+				installer.tryCopyFile(oldLibPath,libPath)
+			except:
+				self.on_secondary_dvc_unavailable()
+				return
+		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave', channel=key, libPath=libPath)
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine, is_secondary=True)
 		self.slave_transport = transport
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_secondary_connected)
@@ -534,7 +547,13 @@ class GlobalPlugin(GlobalPlugin):
 			# Translators: Title of the connection error dialog.
 			gui.messageBox(parent=gui.mainFrame, caption=_("Error Connecting"),
 			# Translators: Message shown when cannot connect to the remote computer.
-			message=_("Unable to connect to the virtual channel. Please make sure that you are in a remote session and that your client is set up correctly"), style=wx.OK | wx.ICON_WARNING)
+			message=_("Unable to connect to the virtual channel. Please make sure that your client is set up correctly"), style=wx.OK | wx.ICON_WARNING)
+
+	def on_secondary_dvc_unavailable(self):
+		# Translators: Title of the connection error dialog.
+		wx.CallAfter(gui.messageBox, parent=gui.mainFrame, caption=_("Error Connecting"),
+		# Translators: Message shown when cannot connect to the remote computer.
+		message=_("Your client is not configured to support a second session in virtual channel mode"), style=wx.OK | wx.ICON_WARNING)
 
 	def hook(self):
 		log.debug("Hook thread start")
