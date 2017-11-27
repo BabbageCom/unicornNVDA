@@ -165,7 +165,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		if connection_type not in DVCTYPES:
 			raise ValueError("Unsupported connection type for DVC connection")
 		log.info("Connecting to DVC as %s" % connection_type)
-		self.lib=Unicorn(connectionType, self)
+		self.lib=Unicorn(DVCTYPES.index(connection_type), self)
 		self.opened = False
 		self.initialized = False
 		#Buffer to hold partially received data
@@ -183,7 +183,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 	def initialize_lib(self):
 		if self.initialized:
 			return
-		res=self.lib.Initialize(DVCTYPES.index(self.connection_type))
+		res=self.lib.Initialize()
 		if res:
 			raise WinError(res)
 		self.initialized = True

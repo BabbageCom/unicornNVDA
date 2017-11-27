@@ -44,12 +44,15 @@ def unicorn_client():
 class Unicorn(object):
 	"""Class to facilitate DVC communication using the Unicorn DVC library"""
 
-	def __init__(self, callbackHandler, supportView=True, libPath=None):
+	def __init__(self, connectionType, callbackHandler, supportView=True, libPath=None):
+		if not connectionType in (CTYPE_SERVER, CTYPE_CLIENT):
+			raise ValueError("Invalid connection type")
 		if not isinstance(callbackHandler, UnicornCallbackHandler):
 			raise TypeError("callbackHandler must be of type UnicornCallbackHandler")
 		if libPath and not os.path.isfile(libPath):
 			raise ValueError("The supplied library path does not exist")
 		self.lib=None
+		self.connectionType=connectionType
 		self.callbackHandler=callbackHandler
 		self.supportView=supportView
 		if supportView:
@@ -75,12 +78,6 @@ class Unicorn(object):
 			self.lib=WinDLL(libPath)
 		self.closed = False
 		self.initialized = False
-		self.Initialize=None
-		self.Open=None
-		self.Write=None
-		self.Close=None
-		self.Terminate=None
-		self.SetCallbacks=None
 		self.registerFunctions()
 		self.registerCallbacks(callbackHandler)
 
@@ -90,12 +87,31 @@ class Unicorn(object):
 		self.SetCallbacks(*callbackPointers)
 
 	def registerFunctions(self):
-		self.Initialize=WINFUNCTYPE(DWORD,c_uint8)(('Unicorn_Initialize',self.lib),((1,'connectionType'),))
-		self.Open=WINFUNCTYPE(DWORD)(('Unicorn_Open',self.lib))
-		self.Write=WINFUNCTYPE(DWORD,DWORD,POINTER(BYTE))(('Unicorn_Write',self.lib),((1,'cbSize'),(1,'pBuffer')))
-		self.Close=WINFUNCTYPE(DWORD)(('Unicorn_Close',self.lib))
-		self.Terminate=WINFUNCTYPE(DWORD)(('Unicorn_Terminate',self.lib))
-		self.SetCallbacks=WINFUNCTYPE(c_void_p,POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p))(('Unicorn_SetCallbacks',self.lib),((1,'_Connected'),(1,'_Disconnected'),(1,'_Terminated'),(1,'OnNewChannelConnection'),(1,'OnDataReceived'),(1,'OnReadError'),(1,'OnClose')))
+		self.c_Initialize=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Initialize',self.lib),((1,'connectionType'),))
+		self.SetLicenseKey=WINFUNCTYPE(DWORD,c_wchar_p)(('Unicorn_SetLicenseKey',self.lib),((1,'licenseKey'),))
+		self.c_Open=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Open',self.lib),((1,'connectionType'),))
+		self.c_Write=WINFUNCTYPE(DWORD,c_uint,DWORD,POINTER(BYTE))(('Unicorn_Write',self.lib),((1,'connectionType'),(1,'cbSize'),(1,'pBuffer')))
+		self.c_Close=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Close',self.lib),((1,'connectionType'),))
+		self.c_Terminate=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Terminate',self.lib),((1,'connectionType'),))
+		self.c_SetCallbacks=WINFUNCTYPE(c_void_p,c_uint,POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p))(('Unicorn_SetCallbacks',self.lib),((1,'connectionType'),(1,'_Connected'),(1,'_Disconnected'),(1,'_Terminated'),(1,'_OnNewChannelConnection'),(1,'_OnDataReceived'),(1,'_OnReadError'),(1,'_OnClose')))
+
+	def Initialize(self):
+		return self.c_Initialize(self.connectionType)
+
+	def Open(self):
+		return self.c_Open(self.connectionType)
+
+	def Write(self, cbSize, pBuffer):
+		return self.c_Write(self.connectionType, cbSize, pBuffer)
+
+	def Close(self):
+		return self.c_Close(self.connectionType)
+
+	def Terminate(self):
+		return self.c_Terminate(self.connectionType)
+
+	def SetCallbacks(self, _Connected,_Disconnected,_Terminated,_OnNewChannelConnection,_OnDataReceived,_OnReadError,_OnClose):
+		return self.c_SetCallbacks(self.connectionType, _Connected, _Disconnected, _Terminated, _OnNewChannelConnection, _OnDataReceived, _OnReadError, _OnClose)
 
 class UnicornCallbackHandler(object):
 

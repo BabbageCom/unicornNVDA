@@ -378,7 +378,7 @@ class GlobalPlugin(GlobalPlugin):
 				self._secondary_started_server = True
 				self.connect_secondary(('127.0.0.1', int(dlg.panel.port.GetValue())), channel)
 			elif dlg.client_or_server.GetSelection() == 2:
-				self.connect_secondary_dvc(channel)
+				self.connect_secondary_dvc()
 		gui.runScriptModalDialog(dlg, callback=handle_dlg_complete)
 
 	def on_connected_as_master(self):
@@ -454,19 +454,8 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_secondary_item.Enable(True)
 		self.connect_secondary_item.Enable(False)
 
-	def connect_secondary_dvc(self, key):
-		oldLibPath = unicorn.unicorn_lib_path()
-		if not oldLibPath:
-			self.on_secondary_dvc_unavailable()
-			return
-		libPath = os.path.join(os.path.abspath(globalVars.appArgs.configPath),u"UnicornDVCAppLib2.dll")
-		if not os.path.isfile(libPath):
-			try:
-				installer.tryCopyFile(oldLibPath,libPath)
-			except:
-				self.on_secondary_dvc_unavailable()
-				return
-		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave', channel=key, libPath=libPath)
+	def connect_secondary_dvc(self):
+		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine, is_secondary=True)
 		self.slave_transport = transport
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_secondary_connected)
