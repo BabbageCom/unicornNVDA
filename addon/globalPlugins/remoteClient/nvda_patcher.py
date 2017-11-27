@@ -34,8 +34,8 @@ class NVDAPatcher(callback_manager.CallbackManager):
 	def unpatch(self):
 		self.unpatch_set_display()
 
-	def setDisplayByName(self, name, isFallback=False):
-		result=self.orig_setDisplayByName(name,isFallback)
+	def setDisplayByName(self, *args, **kwargs):
+		result=self.orig_setDisplayByName(*args, **kwargs)
 		if result:
 			self.call_callbacks('set_display')
 		return result
@@ -43,8 +43,9 @@ class NVDAPatcher(callback_manager.CallbackManager):
 class NVDASlavePatcher(NVDAPatcher):
 	"""Class to manage patching of synth, tones, nvwave, and braille."""
 
-	def __init__(self):
+	def __init__(self, is_secondary=False):
 		super(NVDASlavePatcher, self).__init__()
+		self.is_secondary = is_secondary
 		self.orig_speak = None
 		self.orig_cancel = None
 		self.orig_get_lastIndex  = None
@@ -136,14 +137,16 @@ class NVDASlavePatcher(NVDAPatcher):
 		braille.handler.enabled = bool(braille.handler.displaySize)
 
 	def patch(self):
-		super(NVDASlavePatcher, self).patch()
+		if not self.is_secondary:
+			super(NVDASlavePatcher, self).patch()
 		self.patch_synth()
 		self.patch_tones()
 		self.patch_nvwave()
 		self.patch_braille()
 
 	def unpatch(self):
-		super(NVDASlavePatcher, self).unpatch()
+		if not self.is_secondary:
+			super(NVDASlavePatcher, self).unpatch()
 		self.unpatch_synth()
 		self.unpatch_tones()
 		self.unpatch_nvwave()
@@ -236,6 +239,8 @@ class NVDAMasterPatcher(NVDAPatcher):
 					dict["scriptPath"]=[scriptData[0].__module__,scriptData[0].__name__,scriptData[1]]
 			if hasattr(gesture,"source") and "source" not in dict:
 				dict["source"]=gesture.source
+			if hasattr(gesture,"model") and "model" not in dict:
+				dict["model"]=gesture.model
 			if hasattr(gesture,"id") and "id" not in dict:
 				dict["id"]=gesture.id
 			elif hasattr(gesture,"identifiers") and "identifiers" not in dict:

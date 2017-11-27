@@ -37,19 +37,21 @@ def vdp_rdpvcbridge_path():
 
 def unicorn_client():
 	try:
-		return bool(winreg.OpenKey(winreg.HKEY_CURRENT_USER,"SOFTWARE\\Microsoft\\Terminal Server Client\\Default\\Addins\\UnicornDVCPlugin"))
+		return bool(winreg.OpenKey(winreg.HKEY_CLASSES_ROOT,r"CLSID\{E8BACC05-64F6-4534-9764-FB6698CA3362}",0,winreg.KEY_READ|winreg.KEY_WOW64_32KEY))
 	except WindowsError:
 		return False
 
 class Unicorn(object):
 	"""Class to facilitate DVC communication using the Unicorn DVC library"""
 
-	def __init__(self, callbackHandler, supportView=True):
+	def __init__(self, callbackHandler, supportView=True, libPath=None):
 		if not isinstance(callbackHandler, UnicornCallbackHandler):
 			raise TypeError("callbackHandler must be of type UnicornCallbackHandler")
+		if libPath and not os.path.isfile(libPath):
+			raise ValueError("The supplied library path does not exist")
+		self.lib=None
 		self.callbackHandler=callbackHandler
 		self.supportView=supportView
-		lib_path=unicorn_lib_path()
 		if supportView:
 			# Try to load the vdp_rdpvcbridge so UNicorn can find it regardless of its path
 			try:
@@ -61,13 +63,16 @@ class Unicorn(object):
 						self.vdp_bridge=WinDLL(vdp_bridge_path)
 					except:
 						self.vdp_bridge=None
-		# Load Unicorn
-		try:
-			self.lib=windll.UnicornDVCAppLib
-		except WindowsError:
-			if not lib_path:
-				raise RuntimeError("UnicornDVC library not found")
-			self.lib=WinDLL(lib_path)
+		if not libPath:
+			libPath=unicorn_lib_path()
+			# Load Unicorn
+			try:
+				self.lib=windll.UnicornDVCAppLib
+			except WindowsError:
+				if not libPath:
+					raise RuntimeError("UnicornDVC library not found")
+		if libPath and not self.lib:
+			self.lib=WinDLL(libPath)
 		self.closed = False
 		self.initialized = False
 		self.Initialize=None
