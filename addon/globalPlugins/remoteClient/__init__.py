@@ -368,7 +368,8 @@ class GlobalPlugin(GlobalPlugin):
 		def handle_dlg_complete(dlg_result):
 			if dlg_result != wx.ID_OK:
 				return
-			channel = dlg.panel.key.GetValue()
+			if dlg.client_or_server.GetSelection() != 2:
+				channel = dlg.panel.key.GetValue()
 			if dlg.client_or_server.GetSelection() == 0: #client
 				server_addr = dlg.panel.host.GetValue()
 				server_addr, port = address_to_hostport(server_addr)

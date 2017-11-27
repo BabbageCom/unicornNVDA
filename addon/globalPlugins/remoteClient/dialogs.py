@@ -109,11 +109,6 @@ class ServerPanel(wx.Panel):
 	def on_get_IP_fail(self, exc):
 		wx.MessageBox(message=_("Unable to contact portcheck server, please manually retrieve your IP address"), caption=_("Error"), style=wx.ICON_ERROR|wx.OK)
 
-class DVCPanel(wx.Panel):
-
-	def __init__(self, parent=None, id=wx.ID_ANY):
-		super(DVCPanel, self).__init__(parent, id)
-
 class DirectConnectDialog(wx.Dialog):
 
 	def __init__(self, parent, id, title, allowServer=True, allowMaster=True):
@@ -148,15 +143,17 @@ class DirectConnectDialog(wx.Dialog):
 	def on_client_or_server(self, evt):
 		evt.Skip()
 		self.connection_type.EnableItem(0,self._allowMaster)
+		self.container.Hide()
 		if self.panel:
 			self.panel.Destroy()
 			self.panel=None
 		if self.client_or_server.GetSelection() == 0:
 			self.panel = ClientPanel(parent=self.container)
+			self.container.Show()
 		elif self.client_or_server.GetSelection() == 1:
 			self.panel = ServerPanel(parent=self.container)
+			self.container.Show()
 		elif self.client_or_server.GetSelection() == 2:
-			self.panel = DVCPanel(parent=self.container)
 			self.connection_type.EnableItem(0,bool(unicorn_client()) and self._allowMaster)
 		self.main_sizer.Fit(self)
 
