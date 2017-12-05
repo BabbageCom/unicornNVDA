@@ -144,3 +144,6 @@ class UnicornCallbackHandler(object):
 
 	def _OnClose(self):
 		raise NotImplementedError
+
+class UnicornError(EnvironmentError):
+	pass

@@ -263,3 +263,27 @@ class OptionsDialog(wx.Dialog):
 			cs['port'] = int(self.port.GetValue())
 		cs['key'] = self.key.GetValue()
 		config.write()
+
+class UnicornLicenseDialog(wx.Dialog):
+
+	def __init__(self, parent, id, title):
+		super(OptionsDialog, self).__init__(parent, id, title=title)
+		main_sizer = wx.BoxSizer(wx.VERTICAL)
+		main_sizer_helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
+		#Translators: The input field to enter the Unicorn license key
+		self.key = main_sizer_helper.addLabeledControl(_("&LIcense Key:"), wx.TextCtrl)
+		main_sizer_helper.addDialogDismissButtons(self.CreateButtonSizer(wx.OK | wx.CANCEL))
+		self.Bind(wx.EVT_BUTTON, self.on_ok, id=wx.ID_OK)
+		main_sizer.Add(main_sizer_helper.sizer, border = gui.guiHelper.BORDER_FOR_DIALOGS, flag=wx.ALL)
+		main_sizer.Fit(self)
+		self.SetSizer(main_sizer)
+		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
+		ok = wx.FindWindowById(wx.ID_OK, self)
+		ok.Bind(wx.EVT_BUTTON, self.on_ok)
+		self.key.SetFocus()
+
+	def on_ok(self, evt):
+		if not self.key.GetValue():
+			gui.messageBox(_("You must enter a valid license key."), _("Error"), wx.OK | wx.ICON_ERROR)
+		else:
+			evt.Skip()

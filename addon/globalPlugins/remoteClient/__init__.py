@@ -456,7 +456,11 @@ class GlobalPlugin(GlobalPlugin):
 		self.connect_secondary_item.Enable(False)
 
 	def connect_secondary_dvc(self):
-		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
+		try:
+			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
+		except unicorn.UnicornError as e:
+			self.on_dvc_initialize_failed(e)
+			return
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine, is_secondary=True)
 		self.slave_transport = transport
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_secondary_connected)
@@ -491,7 +495,11 @@ class GlobalPlugin(GlobalPlugin):
 		beep_sequence.beep_sequence_async((440, 60), (660, 60))
 
 	def connect_as_dvc_master(self):
-		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master')
+		try:
+			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master')
+		except unicorn.UnicornError as e:
+			self.on_dvc_initialize_failed(e)
+			return
 		self.master_session = MasterSession(transport=transport, local_machine=self.local_machine)
 		transport.callback_manager.register_callback('transport_connected', self.on_connected_as_dvc_master)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_dvc_master_failed)
@@ -505,7 +513,11 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_secondary_item.Enable(bool(self.slave_transport))
 
 	def connect_as_dvc_slave(self):
-		transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
+		try:
+			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
+		except unicorn.UnicornError as e:
+			self.on_dvc_initialize_failed(e)
+			return
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine)
 		self.slave_transport = transport
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_connected_as_dvc_slave)
@@ -513,6 +525,12 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_item.Enable(True)
 		self.connect_item.Enable(False)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_dvc_slave_failed)
+
+	def on_dvc_initialize_failed(self, error):
+		# Translators: Title of the connection error dialog.
+		wx.CallAfter(gui.messageBox,parent=gui.mainFrame, caption=_("Error Initializing"),
+		# Translators: Message shown when cannot connect to the remote computer.
+		message=_("Can't initialize UnicornDVC to create a virtual channel. Please make sure that you have a valid license."), style=wx.OK | wx.ICON_WARNING)
 
 	def on_connected_as_dvc_master_failed(self):
 		self.disconnect_item.Enable(False)
@@ -539,12 +557,6 @@ class GlobalPlugin(GlobalPlugin):
 			gui.messageBox(parent=gui.mainFrame, caption=_("Error Connecting"),
 			# Translators: Message shown when cannot connect to the remote computer.
 			message=_("Unable to connect to the virtual channel. Please make sure that your client is set up correctly"), style=wx.OK | wx.ICON_WARNING)
-
-	def on_secondary_dvc_unavailable(self):
-		# Translators: Title of the connection error dialog.
-		wx.CallAfter(gui.messageBox, parent=gui.mainFrame, caption=_("Error Connecting"),
-		# Translators: Message shown when cannot connect to the remote computer.
-		message=_("Your client is not configured to support a second session in virtual channel mode"), style=wx.OK | wx.ICON_WARNING)
 
 	def hook(self):
 		log.debug("Hook thread start")

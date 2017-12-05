@@ -174,7 +174,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		self.queue_thread = None
 		self.interrupt_event=threading.Event()
 		self.timeout = timeout
-		self.reconnector_thread = ConnectorThread(self,run_except=WindowsError)
+		self.reconnector_thread = ConnectorThread(self,run_except=EnvironmentError)
 		self.connection_type = connection_type
 		self.protocol_version = protocol_version
 		self.callback_manager.register_callback('msg_protocol_version', self.handle_p2p)
@@ -185,7 +185,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 			return
 		res=self.lib.Initialize()
 		if res:
-			raise WinError(res)
+			raise UnicornError(res)
 		self.initialized = True
 
 	def terminate_lib(self):
@@ -277,7 +277,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		res = self.terminate_lib()
 		if res:
 			raise WinError(res)
-		self.reconnector_thread = ConnectorThread(self,run_except=WindowsError)
+		self.reconnector_thread = ConnectorThread(self,run_except=EnvironmentError)
 
 	def handle_p2p(self, version, **kwargs):
 		if version==PROTOCOL_VERSION:
