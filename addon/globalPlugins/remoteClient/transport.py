@@ -13,6 +13,7 @@ from ctypes import *
 from ctypes.wintypes import *
 import NVDAHelper
 import win32con
+import watchdog
 from unicorn import *
 
 PROTOCOL_VERSION = 2
@@ -183,9 +184,12 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 	def initialize_lib(self):
 		if self.initialized:
 			return
-		res=self.lib.Initialize()
+		try:
+			res=watchdog.cancellableExecute(self.lib.Initialize)
+		except watchdog.CallCancelled:
+			res = 0x102
 		if res:
-			raise UnicornError(res)
+			raise WinError(res)
 		self.initialized = True
 
 	def terminate_lib(self):

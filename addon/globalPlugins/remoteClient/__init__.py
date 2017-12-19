@@ -137,6 +137,10 @@ class GlobalPlugin(GlobalPlugin):
 		self.send_ctrl_alt_del_item = self.menu.Append(wx.ID_ANY, _("Send Ctrl+Alt+Del"), _("Send Ctrl+Alt+Del"))
 		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_send_ctrl_alt_del, self.send_ctrl_alt_del_item)
 		self.send_ctrl_alt_del_item.Enable(False)
+		# Translators: Menu item in NVDA Remote submenu to provide a license key for UnicornDVC.
+		self.set_unicorn_license_item = self.menu.Append(wx.ID_ANY, _("Set Unicorn License Key..."), _("Set a license key for UnicornDVC to activate the product"))
+		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_set_unicorn_license, self.set_unicorn_license_item)
+		self.set_unicorn_license_item.Enable(unicorn.unicorn_client())
 		# Translators: Label of menu in NVDA tools menu.
 		self.remote_item=tools_menu.AppendSubMenu(self.menu, _("R&emote"), _("NVDA Remote Access"))
 
@@ -170,6 +174,9 @@ class GlobalPlugin(GlobalPlugin):
 		self.menu.RemoveItem(self.send_ctrl_alt_del_item)
 		self.send_ctrl_alt_del_item.Destroy()
 		self.send_ctrl_alt_del_item=None
+		self.menu.RemoveItem(		self.set_unicorn_license_item)
+		self.set_unicorn_license_item.Destroy()
+		self.set_unicorn_license_item=None
 		tools_menu = gui.mainFrame.sysTrayIcon.toolsMenu
 		tools_menu.RemoveItem(self.remote_item)
 		self.remote_item.Destroy()
@@ -248,6 +255,19 @@ class GlobalPlugin(GlobalPlugin):
 
 	def on_send_ctrl_alt_del(self, evt):
 		self.master_transport.send('send_SAS')
+
+	def on_set_unicorn_license(self, evt):
+		# Translators: The title of the set UnicornDVC license key dialog.
+		dlg = dialogs.UnicornLicenseDialog(gui.mainFrame, wx.ID_ANY, title=_("Set UnicornDVC License Key"))
+		def handle_dlg_complete(dlg_result):
+			if dlg_result != wx.ID_OK:
+				return
+			gui.messageBox(
+				_("The specified license key is valid. Please initiate a connection as a controlling machine to activate your license.")
+				if not dlg.activate.GetValue() else
+				_("UnicornDVC has been succesfully activated with the provided license key.")
+				, _("Congratulations"), wx.OK | wx.ICON_EXCLAMATION)
+		gui.runScriptModalDialog(dlg, callback=handle_dlg_complete)
 
 	def disconnect(self):
 		if self.master_transport is None and self.slave_transport is None:
@@ -458,7 +478,7 @@ class GlobalPlugin(GlobalPlugin):
 	def connect_secondary_dvc(self):
 		try:
 			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
-		except unicorn.UnicornError as e:
+		except WindowsError as e:
 			self.on_dvc_initialize_failed(e)
 			return
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine, is_secondary=True)
@@ -497,7 +517,7 @@ class GlobalPlugin(GlobalPlugin):
 	def connect_as_dvc_master(self):
 		try:
 			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master')
-		except unicorn.UnicornError as e:
+		except WindowsError as e:
 			self.on_dvc_initialize_failed(e)
 			return
 		self.master_session = MasterSession(transport=transport, local_machine=self.local_machine)
@@ -515,7 +535,7 @@ class GlobalPlugin(GlobalPlugin):
 	def connect_as_dvc_slave(self):
 		try:
 			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
-		except unicorn.UnicornError as e:
+		except WindowsError as e:
 			self.on_dvc_initialize_failed(e)
 			return
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine)
@@ -526,11 +546,11 @@ class GlobalPlugin(GlobalPlugin):
 		self.connect_item.Enable(False)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_dvc_slave_failed)
 
-	def on_dvc_initialize_failed(self, error):
+	def on_dvc_initialize_failed(self, e):
 		# Translators: Title of the connection error dialog.
 		wx.CallAfter(gui.messageBox,parent=gui.mainFrame, caption=_("Error Initializing"),
 		# Translators: Message shown when cannot connect to the remote computer.
-		message=_("Can't initialize UnicornDVC to create a virtual channel. Please make sure that you have a valid license."), style=wx.OK | wx.ICON_WARNING)
+		message=_("Can't initialize UnicornDVC to create a virtual channel. Please make sure that you have a valid license.\nInternal error: {error}").format(error=e.strerror), style=wx.OK | wx.ICON_WARNING)
 
 	def on_connected_as_dvc_master_failed(self):
 		self.disconnect_item.Enable(False)

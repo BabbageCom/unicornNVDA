@@ -16,6 +16,7 @@ import server
 import transport
 import socket_utils
 from unicorn import *
+from ctypes import WinError
 import addonHandler
 addonHandler.initTranslation()
 
@@ -214,7 +215,7 @@ class OptionsDialog(wx.Dialog):
 		self.connection_type.Enable(state and dvcState)
 		if state and not dvcState:
 			self.connection_type.SetSelection(0)
-		self.key.Enable(self.client_or_server.GetSelection()!=2)
+		self.key.Enable(state and self.client_or_server.GetSelection()!=2)
 		self.host.Enable(self.client_or_server.GetSelection()==0 and state)
 		self.port.Enable(self.client_or_server.GetSelection()==1 and state)
 
@@ -241,8 +242,6 @@ class OptionsDialog(wx.Dialog):
 				gui.messageBox(_("Both host and key must be set."), _("Error"), wx.OK | wx.ICON_ERROR)
 			elif self.client_or_server.GetSelection()==1 and not self.port.GetValue() or not self.key.GetValue():
 				gui.messageBox(_("Both port and key must be set."), _("Error"), wx.OK | wx.ICON_ERROR)
-			elif self.client_or_server.GetSelection()==2 and not self.key.GetValue():
-				gui.messageBox(_("Key must be set."), _("Error"), wx.OK | wx.ICON_ERROR)
 			else:
 				evt.Skip()
 		else:
@@ -267,11 +266,13 @@ class OptionsDialog(wx.Dialog):
 class UnicornLicenseDialog(wx.Dialog):
 
 	def __init__(self, parent, id, title):
-		super(OptionsDialog, self).__init__(parent, id, title=title)
+		super(UnicornLicenseDialog, self).__init__(parent, id, title=title)
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
 		main_sizer_helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
 		#Translators: The input field to enter the Unicorn license key
-		self.key = main_sizer_helper.addLabeledControl(_("&LIcense Key:"), wx.TextCtrl)
+		self.key = main_sizer_helper.addLabeledControl(_("&License Key:"), wx.TextCtrl)
+		# Translators: A checkbox to trigger the Unicorn activation process.
+		self.activate = main_sizer_helper.addItem(wx.CheckBox(self, wx.ID_ANY, label=_("Activate UnicornDVC with this license key")))
 		main_sizer_helper.addDialogDismissButtons(self.CreateButtonSizer(wx.OK | wx.CANCEL))
 		self.Bind(wx.EVT_BUTTON, self.on_ok, id=wx.ID_OK)
 		main_sizer.Add(main_sizer_helper.sizer, border = gui.guiHelper.BORDER_FOR_DIALOGS, flag=wx.ALL)
@@ -285,5 +286,28 @@ class UnicornLicenseDialog(wx.Dialog):
 	def on_ok(self, evt):
 		if not self.key.GetValue():
 			gui.messageBox(_("You must enter a valid license key."), _("Error"), wx.OK | wx.ICON_ERROR)
+		elif not bool(unicorn_client()):
+			gui.messageBox(_("The UnicornDVC client is not available on your system. Setting a license key is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
 		else:
-			evt.Skip()
+			# Create a temporary instance of the Unicorn object.
+			try:
+				handler = UnicornCallbackHandler()
+				lib=Unicorn(CTYPE_CLIENT, handler)
+			except AttributeError:
+				gui.messageBox(_("The UnicornDVC client available on your system is out of date. Setting a license key is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
+				return
+			progressDialog = gui.IndeterminateProgressDialog(self, _("Checking license validity"), _("Please wait while your license key is being verified..."))
+
+			def wrapperFunc():
+				raise WinError(lib.SetLicenseKey(unicode(self.key.GetValue()), self.activate.GetValue()))
+
+			try:
+				gui.ExecAndPump(wrapperFunc)
+			except WindowsError as e:
+				res = e.winerror
+				if res:
+					wx.CallAfter(gui.messageBox,WinError(res).strerror, _("Error"), wx.OK | wx.ICON_ERROR)
+				else:
+					evt.Skip()
+			finally:
+				progressDialog.done()

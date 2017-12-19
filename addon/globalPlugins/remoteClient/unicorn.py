@@ -88,7 +88,7 @@ class Unicorn(object):
 
 	def registerFunctions(self):
 		self.c_Initialize=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Initialize',self.lib),((1,'connectionType'),))
-		self.SetLicenseKey=WINFUNCTYPE(DWORD,c_wchar_p)(('Unicorn_SetLicenseKey',self.lib),((1,'licenseKey'),))
+		self.SetLicenseKey=WINFUNCTYPE(DWORD,c_wchar_p,BOOL)(('Unicorn_SetLicenseKey',self.lib),((1,'licenseKey'),(1,"activate"),))
 		self.c_Open=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Open',self.lib),((1,'connectionType'),))
 		self.c_Write=WINFUNCTYPE(DWORD,c_uint,DWORD,POINTER(BYTE))(('Unicorn_Write',self.lib),((1,'connectionType'),(1,'cbSize'),(1,'pBuffer')))
 		self.c_Close=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Close',self.lib),((1,'connectionType'),))
@@ -144,6 +144,3 @@ class UnicornCallbackHandler(object):
 
 	def _OnClose(self):
 		raise NotImplementedError
-
-class UnicornError(EnvironmentError):
-	pass
