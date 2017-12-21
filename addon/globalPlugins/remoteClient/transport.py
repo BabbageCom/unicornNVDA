@@ -184,10 +184,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 	def initialize_lib(self):
 		if self.initialized:
 			return
-		try:
-			res=watchdog.cancellableExecute(self.lib.Initialize)
-		except watchdog.CallCancelled:
-			res = 0x102
+		res = self.lib.Initialize()
 		if res:
 			raise WinError(res)
 		self.initialized = True

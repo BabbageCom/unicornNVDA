@@ -117,14 +117,12 @@ class DirectConnectDialog(wx.Dialog):
 		self._allowMaster = allowMaster
 		main_sizer = self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 		main_sizer_helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
-		choices=[_("TCP Client"), _("TCP Server")]
-		if unicorn_lib_path():
-			choices.append(_("Virtual channel (RDP/ICA/PCoIP)"))
+		choices=[_("TCP Client"), _("TCP Server"), _("Virtual channel (RDP/ICA/PCoIP)")]
 		self.client_or_server = main_sizer_helper.addItem(wx.RadioBox(self, choices=choices, style=wx.RA_VERTICAL))
 		self.client_or_server.Bind(wx.EVT_RADIOBOX, self.on_client_or_server)
 		self.client_or_server.SetSelection(0)
-		if not allowServer:
-			self.client_or_server.EnableItem(1,False)
+		self.client_or_server.EnableItem(1,allowServer)
+		self.client_or_server.EnableItem(2,bool(unicorn_lib_path()))
 		choices = [_("Control another machine"), _("Allow this machine to be controlled")]
 		self.connection_type = main_sizer_helper.addItem(wx.RadioBox(self, choices=choices, style=wx.RA_VERTICAL))
 		self.connection_type.SetSelection(int(not allowMaster))
@@ -156,6 +154,7 @@ class DirectConnectDialog(wx.Dialog):
 			self.container.Show()
 		elif self.client_or_server.GetSelection() == 2:
 			self.connection_type.EnableItem(0,bool(unicorn_client()) and self._allowMaster)
+			self.connection_type.SetSelection(int(not (unicorn_client() and self._allowMaster)))
 		self.main_sizer.Fit(self)
 
 	def on_ok(self, evt):
@@ -178,9 +177,7 @@ class OptionsDialog(wx.Dialog):
 		self.autoconnect = main_sizer_helper.addItem(wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect on startup")))
 		self.autoconnect.Bind(wx.EVT_CHECKBOX, self.on_autoconnect)
 		#Translators: Whether or not to use a relay server when autoconnecting
-		choices=[_("Use Remote Control Server"), _("Host Control Server")]
-		if unicorn_lib_path():
-			choices.append(_("Use a virtual channel"))
+		choices=[_("Use Remote Control Server"), _("Host Control Server"), _("Use a virtual channel")]
 		self.client_or_server = main_sizer_helper.addItem(wx.RadioBox(self, wx.ID_ANY, choices=choices, style=wx.RA_VERTICAL))
 		self.client_or_server.Bind(wx.EVT_RADIOBOX, self.on_client_or_server)
 		self.client_or_server.SetSelection(0)
@@ -211,9 +208,11 @@ class OptionsDialog(wx.Dialog):
 	def set_controls(self):
 		state = bool(self.autoconnect.GetValue())
 		self.client_or_server.Enable(state)
-		dvcState=not (self.client_or_server.GetSelection()==2 and not unicorn_client())
-		self.connection_type.Enable(state and dvcState)
-		if state and not dvcState:
+		self.client_or_server.EnableItem(2,bool(unicorn_lib_path()))
+		clientState=not (self.client_or_server.GetSelection()==2 and not unicorn_client())
+		self.connection_type.Enable(state)
+		self.connection_type.EnableItem(1,clientState)
+		if state and not clientState:
 			self.connection_type.SetSelection(0)
 		self.key.Enable(state and self.client_or_server.GetSelection()!=2)
 		self.host.Enable(self.client_or_server.GetSelection()==0 and state)
@@ -240,7 +239,7 @@ class OptionsDialog(wx.Dialog):
 		if self.autoconnect.GetValue():
 			if self.client_or_server.GetSelection()==0 and (not self.host.GetValue() or not self.key.GetValue()):
 				gui.messageBox(_("Both host and key must be set."), _("Error"), wx.OK | wx.ICON_ERROR)
-			elif self.client_or_server.GetSelection()==1 and not self.port.GetValue() or not self.key.GetValue():
+			elif self.client_or_server.GetSelection()==1 and (not self.port.GetValue() or not self.key.GetValue()):
 				gui.messageBox(_("Both port and key must be set."), _("Error"), wx.OK | wx.ICON_ERROR)
 			else:
 				evt.Skip()
