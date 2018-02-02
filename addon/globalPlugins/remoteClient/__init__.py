@@ -507,7 +507,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.push_clipboard_item.Enable(True)
 		self.send_ctrl_alt_del_item.Enable(True)
 		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
-		if api.getForegroundObject().windowClassName in REMOTE_SHELL_CLASSES:
+		if api.getForegroundObject().windowClassName in REMOTE_SHELL_CLASSES or api.getFocusObject().windowClassName in REMOTE_SHELL_CLASSES:
 			self.rs_focused = True
 			self.enter_remote_shell()
 		# Translators: Presented when connected to the remote computer.
@@ -640,13 +640,10 @@ class GlobalPlugin(GlobalPlugin):
 			#event_leaveFocus won't work for some reason
 			self.sd_focused = False
 			self.leave_secure_desktop()
-		nextHandler()
-
-	def event_foreground(self, obj, nextHandler):
-		if obj.windowClassName in REMOTE_SHELL_CLASSES:
+		if api.getForegroundObject().windowClassName in REMOTE_SHELL_CLASSES or obj.windowClassName in REMOTE_SHELL_CLASSES:
 			self.rs_focused = True
 			self.enter_remote_shell()
-		elif self.rs_focused and obj.windowClassName not in REMOTE_SHELL_CLASSES:
+		elif self.rs_focused and api.getForegroundObject().windowClassName not in REMOTE_SHELL_CLASSES and obj.windowClassName not in REMOTE_SHELL_CLASSES:
 			self.rs_focused = False
 			self.leave_remote_shell()
 		nextHandler()
