@@ -13,6 +13,7 @@ from ctypes import *
 from ctypes.wintypes import *
 import NVDAHelper
 import win32con
+import watchdog
 from unicorn import *
 
 PROTOCOL_VERSION = 2
@@ -159,14 +160,13 @@ class RelayTransport(TCPTransport):
 
 class DVCTransport(Transport,UnicornCallbackHandler):
 
-	def __init__(self, serializer, timeout=60, connection_type=None, channel=None, protocol_version=PROTOCOL_VERSION, libPath=None):
+	def __init__(self, serializer, timeout=60, connection_type=None, protocol_version=PROTOCOL_VERSION):
 		Transport.__init__(self,serializer=serializer)
 		UnicornCallbackHandler.__init__(self)
 		if connection_type not in DVCTYPES:
 			raise ValueError("Unsupported connection type for DVC connection")
 		log.info("Connecting to DVC as %s" % connection_type)
-		self.lib=Unicorn(self, libPath=libPath)
-		self.channel = channel
+		self.lib=Unicorn(DVCTYPES.index(connection_type), self)
 		self.opened = False
 		self.initialized = False
 		#Buffer to hold partially received data
@@ -175,7 +175,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		self.queue_thread = None
 		self.interrupt_event=threading.Event()
 		self.timeout = timeout
-		self.reconnector_thread = ConnectorThread(self,run_except=WindowsError)
+		self.reconnector_thread = ConnectorThread(self,run_except=EnvironmentError)
 		self.connection_type = connection_type
 		self.protocol_version = protocol_version
 		self.callback_manager.register_callback('msg_protocol_version', self.handle_p2p)
@@ -184,7 +184,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 	def initialize_lib(self):
 		if self.initialized:
 			return
-		res=self.lib.Initialize(DVCTYPES.index(self.connection_type),self.channel)
+		res = self.lib.Initialize()
 		if res:
 			raise WinError(res)
 		self.initialized = True
@@ -278,7 +278,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		res = self.terminate_lib()
 		if res:
 			raise WinError(res)
-		self.reconnector_thread = ConnectorThread(self,run_except=WindowsError)
+		self.reconnector_thread = ConnectorThread(self,run_except=EnvironmentError)
 
 	def handle_p2p(self, version, **kwargs):
 		if version==PROTOCOL_VERSION:
