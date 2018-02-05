@@ -16,7 +16,7 @@ import server
 import transport
 import socket_utils
 from unicorn import *
-from ctypes import WinError
+from ctypes import byref, create_unicode_buffer, WinError
 import addonHandler
 addonHandler.initTranslation()
 
@@ -297,15 +297,18 @@ class UnicornLicenseDialog(wx.Dialog):
 				return
 			progressDialog = gui.IndeterminateProgressDialog(self, _("Checking license validity"), _("Please wait while your license key is being verified..."))
 
+			buffer = create_unicode_buffer(64)
 			def wrapperFunc():
-				raise WinError(lib.SetLicenseKey(unicode(self.key.GetValue()), self.activate.GetValue()))
+				raise WinError(lib.SetLicenseKey(unicode(self.key.GetValue()), self.activate.GetValue(), buffer))
 
 			try:
 				gui.ExecAndPump(wrapperFunc)
 			except WindowsError as e:
 				res = e.winerror
 				if res:
-					wx.CallAfter(gui.messageBox,WinError(res).strerror, _("Error"), wx.OK | wx.ICON_ERROR)
+					wx.CallAfter(gui.messageBox,
+					_("An error has occured:\n{error}").format(error=buffer.value or e.strerror),
+					_("Error"), wx.OK | wx.ICON_ERROR)
 				else:
 					evt.Skip()
 			finally:
