@@ -136,8 +136,6 @@ class DirectConnectDialog(wx.Dialog):
 		main_sizer.Fit(self)
 		self.SetSizer(main_sizer)
 		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
-		ok = wx.FindWindowById(wx.ID_OK, self)
-		ok.Bind(wx.EVT_BUTTON, self.on_ok)
 
 	def on_client_or_server(self, evt):
 		evt.Skip()
@@ -198,8 +196,6 @@ class OptionsDialog(wx.Dialog):
 		main_sizer.Fit(self)
 		self.SetSizer(main_sizer)
 		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
-		ok = wx.FindWindowById(wx.ID_OK, self)
-		ok.Bind(wx.EVT_BUTTON, self.on_ok)
 		self.autoconnect.SetFocus()
 
 	def on_autoconnect(self, evt):
@@ -278,8 +274,6 @@ class UnicornLicenseDialog(wx.Dialog):
 		main_sizer.Fit(self)
 		self.SetSizer(main_sizer)
 		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
-		ok = wx.FindWindowById(wx.ID_OK, self)
-		ok.Bind(wx.EVT_BUTTON, self.on_ok)
 		self.key.SetFocus()
 
 	def on_ok(self, evt):
