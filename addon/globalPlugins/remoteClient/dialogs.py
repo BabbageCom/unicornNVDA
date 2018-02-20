@@ -261,9 +261,23 @@ class OptionsDialog(wx.Dialog):
 class UnicornLicenseDialog(wx.Dialog):
 
 	def __init__(self, parent, id, title):
+		if not bool(unicorn_client()):
+			wx.CallAfter(gui.messageBox,_("The UnicornDVC client is not available on your system. Setting a license key is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
+			return
+		else:
+			# Create a temporary instance of the Unicorn object.
+			try:
+				self.handler = UnicornCallbackHandler()
+				self.lib=Unicorn(CTYPE_CLIENT, self.handler)
+			except AttributeError:
+				wx.CallAfter(gui.messageBox,_("The UnicornDVC client available on your system is out of date. Setting a license key is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
+				raise
 		super(UnicornLicenseDialog, self).__init__(parent, id, title=title)
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
 		main_sizer_helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
+		#Translators: The input field to get the Hardware ID from
+		self.hardwareId = main_sizer_helper.addLabeledControl(_("Hardware &ID:"), wx.TextCtrl, style=wx.TE_READONLY|wx.TE_MULTILINE)
+		self.hardwareId.SetValue(self.lib.GetHardwareId())
 		#Translators: The input field to enter the Unicorn license key
 		self.key = main_sizer_helper.addLabeledControl(_("&License Key:"), wx.TextCtrl)
 		# Translators: A checkbox to trigger the Unicorn activation process.
@@ -274,36 +288,29 @@ class UnicornLicenseDialog(wx.Dialog):
 		main_sizer.Fit(self)
 		self.SetSizer(main_sizer)
 		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
+		self.Show()
 		self.key.SetFocus()
 
 	def on_ok(self, evt):
 		if not self.key.GetValue():
 			gui.messageBox(_("You must enter a valid license key."), _("Error"), wx.OK | wx.ICON_ERROR)
-		elif not bool(unicorn_client()):
-			gui.messageBox(_("The UnicornDVC client is not available on your system. Setting a license key is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
-		else:
-			# Create a temporary instance of the Unicorn object.
-			try:
-				handler = UnicornCallbackHandler()
-				lib=Unicorn(CTYPE_CLIENT, handler)
-			except AttributeError:
-				gui.messageBox(_("The UnicornDVC client available on your system is out of date. Setting a license key is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
-				return
-			progressDialog = gui.IndeterminateProgressDialog(self, _("Checking license validity"), _("Please wait while your license key is being verified..."))
+			self.key.SetFocus()
+			return
+		progressDialog = gui.IndeterminateProgressDialog(self, _("Checking license validity"), _("Please wait while your license key is being verified..."))
 
-			buffer = create_unicode_buffer(64)
-			def wrapperFunc():
-				raise WinError(lib.SetLicenseKey(unicode(self.key.GetValue()), self.activate.GetValue(), buffer))
+		buffer = create_unicode_buffer(64)
+		def wrapperFunc():
+			raise WinError(self.lib.SetLicenseKey(unicode(self.key.GetValue()), self.activate.GetValue(), buffer))
 
-			try:
-				gui.ExecAndPump(wrapperFunc)
-			except WindowsError as e:
-				res = e.winerror
-				if res:
-					wx.CallAfter(gui.messageBox,
+		try:
+			gui.ExecAndPump(wrapperFunc)
+		except WindowsError as e:
+			res = e.winerror
+			if res:
+				wx.CallAfter(gui.messageBox,
 					_("An error has occured:\n{error}").format(error=buffer.value or e.strerror),
 					_("Error"), wx.OK | wx.ICON_ERROR)
-				else:
-					evt.Skip()
-			finally:
-				progressDialog.done()
+			else:
+				evt.Skip()
+		finally:
+			progressDialog.done()
