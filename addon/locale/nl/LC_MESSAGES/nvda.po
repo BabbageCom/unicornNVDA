@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: nvdaremote 1.2\n"
 "Report-Msgid-Bugs-To: 'nvda-translations@freelists.org'\n"
 "POT-Creation-Date: 2018-02-05 14:45+0100\n"
-"PO-Revision-Date: 2018-02-05 14:53+0100\n"
+"PO-Revision-Date: 2018-02-20 09:25+0100\n"
 "Last-Translator: Leonard de Ruijter <leonard@babbage.com>\n"
 "Language-Team: Babbage B.V. <info@babbage.com>\n"
 "Language: nl\n"
@@ -469,7 +469,7 @@ msgstr "Licentievaliditeit controleren"
 
 #: addon\globalPlugins\remoteClient\dialogs.py:298
 msgid "Please wait while your license key is being verified..."
-msgstr "Een ogenblik gedul terwijl uw licentiecode geverifiëerd wordt."
+msgstr "Een ogenblik geduld terwijl uw licentiecode geverifieerd wordt."
 
 #: addon\globalPlugins\remoteClient\dialogs.py:310
 msgid ""
