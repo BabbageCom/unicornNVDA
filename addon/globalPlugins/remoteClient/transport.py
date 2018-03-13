@@ -248,7 +248,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 			res=self.lib.Write(sizeof(strbuf),cast(strbuf,POINTER(BYTE)))
 			if res:
 				log.warning(WinError(res))
-				return
+				#return
 
 	def send(self, type, origin=None, **kwargs):
 		obj = self.serializer.serialize(type=type, origin=origin or -1, **kwargs)
