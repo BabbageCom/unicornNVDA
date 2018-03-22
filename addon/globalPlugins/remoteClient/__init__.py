@@ -118,8 +118,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_secondary_item.Enable(False)
 		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_disconnect_secondary_item, self.disconnect_secondary_item)
 		# Translators: Menu item in NvDA Remote submenu to mute speech and sounds from the remote computer.
-		self.mute_item = self.menu.Append(wx.ID_ANY, _("Mute remote"), _("Mute speech and sounds from the remote computer"))
-		self.mute_item.SetCheckable(True)
+		self.mute_item = self.menu.Append(wx.ID_ANY, _("Mute remote"), _("Mute speech and sounds from the remote computer"), kind=wx.ITEM_CHECK)
 		self.mute_item.Enable(False)
 		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_mute_item, self.mute_item)
 		# Translators: Menu item in NVDA Remote submenu to push clipboard content to the remote computer.
@@ -183,7 +182,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.remote_item=None
 		try:
 			self.menu.Destroy()
-		except wx.PyDeadObjectError:
+		except (RuntimeError, AttributeError):
 			pass
 		try:
 			os.unlink(self.ipc_file)

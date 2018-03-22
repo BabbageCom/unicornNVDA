@@ -20,6 +20,9 @@ from ctypes import byref, create_unicode_buffer, WinError
 import addonHandler
 addonHandler.initTranslation()
 
+WX_VERSION = int(wx.version()[0])
+WX_CENTER = wx.Center if WX_VERSION>=4 else wx.CENTER_ON_SCREEN
+
 class ClientPanel(wx.Panel):
 
 	def __init__(self, parent=None, id=wx.ID_ANY):
@@ -135,7 +138,7 @@ class DirectConnectDialog(wx.Dialog):
 		main_sizer.Add(main_sizer_helper.sizer, border = gui.guiHelper.BORDER_FOR_DIALOGS, flag=wx.ALL)
 		main_sizer.Fit(self)
 		self.SetSizer(main_sizer)
-		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
+		self.Center(wx.BOTH | WX_CENTER)
 
 	def on_client_or_server(self, evt):
 		evt.Skip()
@@ -195,7 +198,7 @@ class OptionsDialog(wx.Dialog):
 		main_sizer.Add(main_sizer_helper.sizer, border = gui.guiHelper.BORDER_FOR_DIALOGS, flag=wx.ALL)
 		main_sizer.Fit(self)
 		self.SetSizer(main_sizer)
-		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
+		self.Center(wx.BOTH | WX_CENTER)
 		self.autoconnect.SetFocus()
 
 	def on_autoconnect(self, evt):
