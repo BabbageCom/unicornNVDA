@@ -508,7 +508,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
 		if api.getForegroundObject().windowClassName in REMOTE_SHELL_CLASSES or api.getFocusObject().windowClassName in REMOTE_SHELL_CLASSES:
 			self.rs_focused = True
-			self.enter_remote_shell()
+			wx.CallAfter(self.enter_remote_shell)
 		# Translators: Presented when connected to the remote computer.
 		ui.message(_("Connected!"))
 		beep_sequence.beep_sequence_async((440, 60), (660, 60))
@@ -638,7 +638,7 @@ class GlobalPlugin(GlobalPlugin):
 			self.leave_secure_desktop()
 		if api.getForegroundObject().windowClassName in REMOTE_SHELL_CLASSES or obj.windowClassName in REMOTE_SHELL_CLASSES:
 			self.rs_focused = True
-			self.enter_remote_shell()
+			wx.CallAfter(self.enter_remote_shell)
 		elif self.rs_focused and api.getForegroundObject().windowClassName not in REMOTE_SHELL_CLASSES and obj.windowClassName not in REMOTE_SHELL_CLASSES:
 			self.rs_focused = False
 			self.leave_remote_shell()
