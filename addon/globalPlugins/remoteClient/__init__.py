@@ -532,6 +532,7 @@ class GlobalPlugin(GlobalPlugin):
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_dvc_master_failed)
 		transport.callback_manager.register_callback('transport_closing', self.disconnecting_as_master)
 		transport.callback_manager.register_callback('transport_disconnected', self.on_disconnected_as_master)
+		transport.callback_manager.register_callback('msg_client_joined', lambda **kwargs: self.evaluate_remote_shell())
 		self.master_transport = transport
 		self.master_transport.reconnector_thread.start()
 		self.disconnect_item.Enable(True)
