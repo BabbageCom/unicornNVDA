@@ -1,5 +1,5 @@
 REMOTE_KEY = "kb:f11"
-REMOTE_SHELL_CLASSES={u'TscShellContainerClass', u'CtxICADisp',u'ATL:00F327E0'}
+REMOTE_SHELL_CLASSES={u'TscShellContainerClass', u'CtxICADisp'}
 import os
 import sys
 try:
@@ -501,14 +501,22 @@ class GlobalPlugin(GlobalPlugin):
 		server_thread.daemon = True
 		server_thread.start()
 
+	def evaluate_remote_shell(self):
+		focus = api.getFocusObject()
+		fg = api.getForegroundObject()
+		if fg.windowClassName in REMOTE_SHELL_CLASSES or focus.windowClassName in REMOTE_SHELL_CLASSES or (focus.appModule.appName==u'vmware-view' and focus.windowClassName.startswith("ATL")):
+			self.rs_focused = True
+			wx.CallAfter(self.enter_remote_shell)
+		elif self.rs_focused and fg.windowClassName not in REMOTE_SHELL_CLASSES and focus.windowClassName not in REMOTE_SHELL_CLASSES and not (focus.appModule.appName==u'vmware-view' and focus.windowClassName.startswith("ATL")):
+			self.rs_focused = False
+			self.leave_remote_shell()
+
 	def on_connected_as_dvc_master(self):
 		self.mute_item.Enable(True)
 		self.push_clipboard_item.Enable(True)
 		self.send_ctrl_alt_del_item.Enable(True)
 		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
-		if api.getForegroundObject().windowClassName in REMOTE_SHELL_CLASSES or api.getFocusObject().windowClassName in REMOTE_SHELL_CLASSES:
-			self.rs_focused = True
-			wx.CallAfter(self.enter_remote_shell)
+		self.evaluate_remote_shell()
 		# Translators: Presented when connected to the remote computer.
 		ui.message(_("Connected!"))
 		beep_sequence.beep_sequence_async((440, 60), (660, 60))
@@ -636,12 +644,7 @@ class GlobalPlugin(GlobalPlugin):
 			#event_leaveFocus won't work for some reason
 			self.sd_focused = False
 			self.leave_secure_desktop()
-		if api.getForegroundObject().windowClassName in REMOTE_SHELL_CLASSES or obj.windowClassName in REMOTE_SHELL_CLASSES:
-			self.rs_focused = True
-			wx.CallAfter(self.enter_remote_shell)
-		elif self.rs_focused and api.getForegroundObject().windowClassName not in REMOTE_SHELL_CLASSES and obj.windowClassName not in REMOTE_SHELL_CLASSES:
-			self.rs_focused = False
-			self.leave_remote_shell()
+		self.evaluate_remote_shell()
 		nextHandler()
 
 	def enter_secure_desktop(self):
