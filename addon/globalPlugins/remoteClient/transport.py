@@ -202,7 +202,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		res=self.lib.Open()
 		if res>=1<<31:
 			raise WindowsError("Raised WinError out of range")
-		elif res:
+		elif res != 0x4000:
 			if res in (1,87):
 				self.callback_manager.call_callbacks('transport_connection_failed')
 			raise WinError(res)		
@@ -210,6 +210,8 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 			self.callback_manager.call_callbacks('transport_connection_failed')
 			raise WinError(res)
 		self.opened = True
+		if res == 0x4000:
+			self.callback_manager.call_callbacks('transport_connection_in_trial_mode')
 		self.queue_thread = threading.Thread(target=self.send_queue)
 		self.queue_thread.daemon = True
 		self.queue_thread.start()

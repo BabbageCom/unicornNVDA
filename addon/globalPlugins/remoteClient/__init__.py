@@ -2,12 +2,7 @@ REMOTE_KEY = "kb:f11"
 REMOTE_SHELL_CLASSES={u'TscShellContainerClass', u'CtxICADisp'}
 import os
 import sys
-try:
-	import json
-except ImportError:
-	sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-	import json
-	sys.path.remove(sys.path[-1])
+import json
 import threading
 import time
 import socket
@@ -137,9 +132,9 @@ class GlobalPlugin(GlobalPlugin):
 		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_send_ctrl_alt_del, self.send_ctrl_alt_del_item)
 		self.send_ctrl_alt_del_item.Enable(False)
 		# Translators: Menu item in NVDA Remote submenu to provide a license key for UnicornDVC.
-		self.set_unicorn_license_item = self.menu.Append(wx.ID_ANY, _("Set Unicorn License Key..."), _("Set a license key for UnicornDVC to activate the product"))
-		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_set_unicorn_license, self.set_unicorn_license_item)
-		self.set_unicorn_license_item.Enable(unicorn.unicorn_client())
+		self.manage_unicorn_license_item = self.menu.Append(wx.ID_ANY, _("Manage Unicorn License..."), _("Activate or deactivate UnicornDVC"))
+		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_manage_unicorn_license, self.manage_unicorn_license_item)
+		self.manage_unicorn_license_item.Enable(unicorn.unicorn_client())
 		# Translators: Label of menu in NVDA tools menu.
 		self.remote_item=tools_menu.AppendSubMenu(self.menu, _("R&emote"), _("NVDA Remote Access"))
 
@@ -173,9 +168,9 @@ class GlobalPlugin(GlobalPlugin):
 		self.menu.RemoveItem(self.send_ctrl_alt_del_item)
 		self.send_ctrl_alt_del_item.Destroy()
 		self.send_ctrl_alt_del_item=None
-		self.menu.RemoveItem(		self.set_unicorn_license_item)
-		self.set_unicorn_license_item.Destroy()
-		self.set_unicorn_license_item=None
+		self.menu.RemoveItem(		self.manage_unicorn_license_item)
+		self.manage_unicorn_license_item.Destroy()
+		self.manage_unicorn_license_item=None
 		tools_menu = gui.mainFrame.sysTrayIcon.toolsMenu
 		tools_menu.RemoveItem(self.remote_item)
 		self.remote_item.Destroy()
@@ -255,18 +250,10 @@ class GlobalPlugin(GlobalPlugin):
 	def on_send_ctrl_alt_del(self, evt):
 		self.master_transport.send('send_SAS')
 
-	def on_set_unicorn_license(self, evt):
-		# Translators: The title of the set UnicornDVC license key dialog.
-		dlg = dialogs.UnicornLicenseDialog(gui.mainFrame, wx.ID_ANY, title=_("Set UnicornDVC License Key"))
-		def handle_dlg_complete(dlg_result):
-			if dlg_result != wx.ID_OK:
-				return
-			gui.messageBox(
-				_("The specified license key is valid. Please initiate a connection as a controlling machine to activate your license.")
-				if not dlg.activate.GetValue() else
-				_("UnicornDVC has been succesfully activated with the provided license key.")
-				, _("Congratulations"), wx.OK | wx.ICON_EXCLAMATION)
-		gui.runScriptModalDialog(dlg, callback=handle_dlg_complete)
+	def on_manage_unicorn_license(self, evt):
+		# Translators: The title of the Manage UnicornDVC license dialog.
+		dlg = dialogs.UnicornLicenseDialog(gui.mainFrame, wx.ID_ANY, title=_("Manage UnicornDVC License"))
+		gui.runScriptModalDialog(dlg)
 
 	def disconnect(self):
 		if self.master_transport is None and self.slave_transport is None:
@@ -530,6 +517,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.master_session = MasterSession(transport=transport, local_machine=self.local_machine)
 		transport.callback_manager.register_callback('transport_connected', self.on_connected_as_dvc_master)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_dvc_master_failed)
+		transport.callback_manager.register_callback('transport_connection_in_trial_mode', self.on_connected_in_trial_mode)
 		transport.callback_manager.register_callback('transport_closing', self.disconnecting_as_master)
 		transport.callback_manager.register_callback('transport_disconnected', self.on_disconnected_as_master)
 		transport.callback_manager.register_callback('msg_client_joined', lambda **kwargs: self.evaluate_remote_shell())
@@ -569,6 +557,12 @@ class GlobalPlugin(GlobalPlugin):
 			gui.messageBox(parent=gui.mainFrame, caption=_("Error Connecting"),
 			# Translators: Message shown when cannot connect to the remote computer.
 			message=_("Unable to connect to the virtual channel. Please make sure that your client is set up correctly"), style=wx.OK | wx.ICON_WARNING)
+
+	def on_connected_in_trial_mode(self):
+		# Translators: Title of the trial dialog.
+		gui.messageBox(parent=gui.mainFrame, caption=_("License Warning"),
+		# Translators: Message shown when running in trial mode.
+		message=_("UnicornDVC is running in trial mode. If this message is unexpected, please check whether you have a valid license."), style=wx.OK | wx.ICON_WARNING)
 
 	def on_connected_as_dvc_slave_failed(self):
 		if self.slave_transport.successful_connects == 0:

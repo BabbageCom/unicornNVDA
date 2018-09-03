@@ -17,6 +17,7 @@ import transport
 import socket_utils
 from unicorn import *
 from ctypes import byref, create_unicode_buffer, WinError
+import watchdog
 import addonHandler
 addonHandler.initTranslation()
 
@@ -265,26 +266,30 @@ class UnicornLicenseDialog(wx.Dialog):
 
 	def __init__(self, parent, id, title):
 		if not bool(unicorn_client()):
-			wx.CallAfter(gui.messageBox,_("The UnicornDVC client is not available on your system. Setting a license key is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
+			wx.CallAfter(gui.messageBox,_("The UnicornDVC client is not available on your system. Managing a license is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
 			return
-		else:
-			# Create a temporary instance of the Unicorn object.
-			try:
-				self.handler = UnicornCallbackHandler()
-				self.lib=Unicorn(CTYPE_CLIENT, self.handler)
-			except AttributeError:
-				wx.CallAfter(gui.messageBox,_("The UnicornDVC client available on your system is out of date. Setting a license key is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
-				raise
+		# Create a temporary instance of the Unicorn object.
+		try:
+			self.handler = UnicornCallbackHandler()
+			self.lib=Unicorn(CTYPE_CLIENT, self.handler)
+		except AttributeError:
+			wx.CallAfter(gui.messageBox,_("The UnicornDVC client available on your system is out of date. Managing a license is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
+			raise
 		super(UnicornLicenseDialog, self).__init__(parent, id, title=title)
+		self.isLicensed = self.lib.IsLicensed()
+		if self.isLicensed:
+			message = _("Your copy of UnicornDVC is properly licensed.\nChoose OK to deactivate the product, or Cancel to close this dialog.")
+		else:
+			message = _("Your copy of UnicornDVC doesn't seem to be licensed.\nEnter your e-mail address and license key in the respective fields and choose OK to activate the product.\nAlternatively, press Cancel to close this dialog.")
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
+		main_sizer.Add(wx.StaticText(self, label=message))
 		main_sizer_helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
-		#Translators: The input field to get the Hardware ID from
-		self.hardwareId = main_sizer_helper.addLabeledControl(_("Hardware &ID:"), wx.TextCtrl, style=wx.TE_READONLY|wx.TE_MULTILINE)
-		self.hardwareId.SetValue(self.lib.GetHardwareId())
+		#Translators: The input field to enter an e-mail address
+		self.emailAddress = main_sizer_helper.addLabeledControl(_("&E-mail Address:"), wx.TextCtrl)
+		self.emailAddress.Enabled=not self.isLicensed
 		#Translators: The input field to enter the Unicorn license key
 		self.key = main_sizer_helper.addLabeledControl(_("&License Key:"), wx.TextCtrl)
-		# Translators: A checkbox to trigger the Unicorn activation process.
-		self.activate = main_sizer_helper.addItem(wx.CheckBox(self, wx.ID_ANY, label=_("Activate UnicornDVC with this license key")))
+		self.key.Enabled=not self.isLicensed
 		main_sizer_helper.addDialogDismissButtons(self.CreateButtonSizer(wx.OK | wx.CANCEL))
 		self.Bind(wx.EVT_BUTTON, self.on_ok, id=wx.ID_OK)
 		main_sizer.Add(main_sizer_helper.sizer, border = gui.guiHelper.BORDER_FOR_DIALOGS, flag=wx.ALL)
@@ -292,28 +297,54 @@ class UnicornLicenseDialog(wx.Dialog):
 		self.SetSizer(main_sizer)
 		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
 		self.Show()
-		self.key.SetFocus()
+		self.emailAddress.SetFocus()
 
 	def on_ok(self, evt):
-		if not self.key.GetValue():
-			gui.messageBox(_("You must enter a valid license key."), _("Error"), wx.OK | wx.ICON_ERROR)
-			self.key.SetFocus()
-			return
-		progressDialog = gui.IndeterminateProgressDialog(self, _("Checking license validity"), _("Please wait while your license key is being verified..."))
+		if not self.isLicensed:
+			self.activate(evt)
+		else:
+			self.deactivate(evt)
 
-		buffer = create_unicode_buffer(64)
-		def wrapperFunc():
-			raise WinError(self.lib.SetLicenseKey(unicode(self.key.GetValue()), self.activate.GetValue(), buffer))
+	def activate(self, evt):
+		if not self.emailAddress.Value or not self.key.Value:
+			gui.messageBox(_("You must enter a valid e-mail address and license key."), _("Error"), wx.OK | wx.ICON_ERROR)
+			self.emailAddress.SetFocus()
+			return
+		progressDialog = gui.IndeterminateProgressDialog(self, _("Performing request"), _("Please wait while your license is being activated..."))
 
 		try:
-			gui.ExecAndPump(wrapperFunc)
-		except WindowsError as e:
-			res = e.winerror
-			if res:
-				wx.CallAfter(gui.messageBox,
-					_("An error has occured:\n{error}").format(error=buffer.value or e.strerror),
+			succes, message = watchdog.cancellableExecute(self.lib.ActivateLicense, self.emailAddress.Value, self.key.Value)
+		except:
+			success = False
+			message = _("There was an error while performing your request.")
+
+		if not succes:
+			wx.CallAfter(gui.messageBox,
+				_("An error has occured:\n{error}").format(error=message),
 					_("Error"), wx.OK | wx.ICON_ERROR)
-			else:
-				evt.Skip()
-		finally:
-			progressDialog.done()
+		else:
+			evt.Skip()
+			wx.CallAfter(gui.messageBox,
+				_("UnicornDVC has been activated!\nAdditional info: {message}").format(message=message),
+					_("Congratulations!"), wx.OK | wx.ICON_EXCLAMATION)
+		progressDialog.done()
+
+	def deactivate(self, evt):
+		progressDialog = gui.IndeterminateProgressDialog(self, _("Performing request"), _("Please wait while your license is being deactivated..."))
+
+		try:
+			succes, message = watchdog.cancellableExecute(self.lib.DeactivateLicense)
+		except:
+			success = False
+			message = _("There was a timeout while performing your request.")
+
+		if not succes:
+			wx.CallAfter(gui.messageBox,
+				_("An error has occured:\n{error}").format(error=message),
+					_("Error"), wx.OK | wx.ICON_ERROR)
+		else:
+			evt.Skip()
+			wx.CallAfter(gui.messageBox,
+				_("UnicornDVC has been deactivated!\nAdditional info: {message}").format(message=message),
+					_("Congratulations!"), wx.OK | wx.ICON_EXCLAMATION)
+		progressDialog.done()
