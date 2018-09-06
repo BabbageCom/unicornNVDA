@@ -167,6 +167,7 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		if connection_type not in DVCTYPES:
 			raise ValueError("Unsupported connection type for DVC connection")
 		log.info("Connecting to DVC as %s" % connection_type)
+		self.trial = False
 		self.lib=Unicorn(DVCTYPES.index(connection_type), self)
 		self.opened = False
 		self.initialized = False
@@ -202,17 +203,18 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		self.interrupt_event.clear()
 		res=self.lib.Open()
 		if res>=1<<31:
-			raise WindowsError("Raised WinError out of range")
-		elif res not in (0, 0x4000):
-			if res in (1,87):
-				self.callback_manager.call_callbacks('transport_connection_failed')
+			raise WindowsError("Raised WinError %s out of range" % hex(res))
+		elif res in (1,87):
+			self.callback_manager.call_callbacks('transport_connection_failed')
+			raise WinError(res)		
+		elif res == 0x4000:
+			self.trial=True
+		elif res:
 			raise WinError(res)		
 		if self.connection_type=='master' and not unicorn_client(): # Master
 			self.callback_manager.call_callbacks('transport_connection_failed')
 			raise WinError(res)
 		self.opened = True
-		if res == 0x4000:
-			self.callback_manager.call_callbacks('transport_connection_in_trial_mode')
 		self.queue_thread = threading.Thread(target=self.send_queue)
 		self.queue_thread.daemon = True
 		self.queue_thread.start()
@@ -286,6 +288,8 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 	def handle_p2p(self, version, **kwargs):
 		if version==PROTOCOL_VERSION:
 			self.send(type='client_joined', client=dict(id=-1, connection_type=self.connection_type))
+			if self.trial:
+				self.callback_manager.call_callbacks('transport_connection_in_trial_mode')
 		else:
 			self.send(type='version_mismatch')
 
