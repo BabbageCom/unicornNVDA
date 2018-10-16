@@ -313,12 +313,12 @@ class UnicornLicenseDialog(wx.Dialog):
 		progressDialog = gui.IndeterminateProgressDialog(self, _("Performing request"), _("Please wait while your license is being activated..."))
 
 		try:
-			succes, message = watchdog.cancellableExecute(self.lib.ActivateLicense, self.emailAddress.Value, self.key.Value)
+			success, message = watchdog.cancellableExecute(self.lib.ActivateLicense, self.emailAddress.Value, self.key.Value)
 		except:
 			success = False
 			message = _("There was an error while performing your request.")
 
-		if not succes:
+		if not success:
 			wx.CallAfter(gui.messageBox,
 				_("An error has occured:\n{error}").format(error=message),
 					_("Error"), wx.OK | wx.ICON_ERROR)
@@ -333,12 +333,12 @@ class UnicornLicenseDialog(wx.Dialog):
 		progressDialog = gui.IndeterminateProgressDialog(self, _("Performing request"), _("Please wait while your license is being deactivated..."))
 
 		try:
-			succes, message = watchdog.cancellableExecute(self.lib.DeactivateLicense)
+			success, message = watchdog.cancellableExecute(self.lib.DeactivateLicense)
 		except:
 			success = False
 			message = _("There was a timeout while performing your request.")
 
-		if not succes:
+		if not success:
 			wx.CallAfter(gui.messageBox,
 				_("An error has occured:\n{error}").format(error=message),
 					_("Error"), wx.OK | wx.ICON_ERROR)
