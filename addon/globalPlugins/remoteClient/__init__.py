@@ -1,5 +1,5 @@
 REMOTE_KEY = "kb:f11"
-REMOTE_SHELL_CLASSES={u'TscShellContainerClass', u'CtxICADisp'}
+REMOTE_SHELL_CLASSES={u'TscShellContainerClass', u'CtxICADisp', u'Transparent Windows Client'}
 import os
 import sys
 import json
