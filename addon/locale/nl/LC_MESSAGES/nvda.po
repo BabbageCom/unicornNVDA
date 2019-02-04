@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: nvdaremote 1.2\n"
 "Report-Msgid-Bugs-To: 'nvda-translations@freelists.org'\n"
 "POT-Creation-Date: 2018-09-03 10:52+0200\n"
-"PO-Revision-Date: 2018-09-03 11:01+0200\n"
+"PO-Revision-Date: 2018-11-23 13:03+0100\n"
 "Last-Translator: Leonard de Ruijter <leonard@babbage.com>\n"
 "Language-Team: Babbage B.V. <info@babbage.com>\n"
 "Language: nl\n"
@@ -461,7 +461,7 @@ msgid ""
 msgstr ""
 "Je installatie van UnicornDVC beschikt niet over een geldige licentie.\n"
 "Vul je e-mailadres en licentiecode in in de daarvoor bestemde velden en kies "
-"Ok om het product te dactiveren\n"
+"Ok om het product te activeren\n"
 "Kies Annuleren om dit venster te sluiten."
 
 #. Translators: The input field to enter an e-mail address
@@ -476,8 +476,7 @@ msgstr "&Licentiecode:"
 
 #: addon\globalPlugins\remoteClient\dialogs.py:310
 msgid "You must enter a valid e-mail address and license key."
-msgstr ""
-"Je moet een geldig e-mailadres en en een geldige licentiecode invoeren."
+msgstr "Je moet een geldig e-mailadres en een geldige licentiecode invoeren."
 
 #: addon\globalPlugins\remoteClient\dialogs.py:313
 #: addon\globalPlugins\remoteClient\dialogs.py:333
