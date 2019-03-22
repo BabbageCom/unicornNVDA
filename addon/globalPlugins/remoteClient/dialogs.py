@@ -280,7 +280,7 @@ class UnicornLicenseDialog(wx.Dialog):
 		if self.isLicensed:
 			message = _("Your copy of UnicornDVC is properly licensed.\nChoose OK to deactivate the product, or Cancel to close this dialog.")
 		else:
-			message = _("Your copy of UnicornDVC doesn't seem to be licensed.\nEnter your e-mail address and license key in the respective fields and choose OK to activate the product.\nAlternatively, press Cancel to close this dialog.")
+			message = _("Your copy of UnicornDVC doesn't seem to be licensed.\nEnter your license key in the respective field and choose OK to activate the product.\nAlternatively, press Cancel to close this dialog.")
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
 		main_sizer.Add(wx.StaticText(self, label=message))
 		main_sizer_helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
