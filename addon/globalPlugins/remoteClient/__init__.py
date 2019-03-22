@@ -515,9 +515,10 @@ class GlobalPlugin(GlobalPlugin):
 			self.on_dvc_initialize_failed(e)
 			return
 		self.master_session = MasterSession(transport=transport, local_machine=self.local_machine)
+		transport.callback_manager.register_callback('transport_connection_in_trial_mode', self.on_connected_in_trial_mode)
+		transport.callback_manager.register_callback('transport_trial_expired', self.on_trial_expired)
 		transport.callback_manager.register_callback('transport_connected', self.on_connected_as_dvc_master)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_dvc_master_failed)
-		transport.callback_manager.register_callback('transport_connection_in_trial_mode', self.on_connected_in_trial_mode)
 		transport.callback_manager.register_callback('transport_closing', self.disconnecting_as_master)
 		transport.callback_manager.register_callback('transport_disconnected', self.on_disconnected_as_master)
 		transport.callback_manager.register_callback('msg_client_joined', lambda **kwargs: self.evaluate_remote_shell())
@@ -559,10 +560,27 @@ class GlobalPlugin(GlobalPlugin):
 			message=_("Unable to connect to the virtual channel. Please make sure that your client is set up correctly"), style=wx.OK | wx.ICON_WARNING)
 
 	def on_connected_in_trial_mode(self):
+		if globalVars.appArgs.secure:
+			return
 		# Translators: Title of the trial dialog.
-		gui.messageBox(parent=gui.mainFrame, caption=_("License Warning"),
-		# Translators: Message shown when running in trial mode.
-		message=_("UnicornDVC is running in trial mode. If this message is unexpected, please check whether you have a valid license."), style=wx.OK | wx.ICON_WARNING)
+		gui.messageBox(
+			parent=gui.mainFrame,
+			caption=_("License Warning"),
+			# Translators: Message shown when running in trial mode.
+			message=_("UnicornDVC is running in trial mode. If this message is unexpected, please check whether you have a valid license."),
+			style=wx.OK | wx.ICON_WARNING
+		)
+
+	def on_trial_expired(self):
+		# Translators: Title of the trial dialog.
+		gui.messageBox(
+			parent=gui.mainFrame,
+			# Translators: Title of the trial expireddialog.
+			caption=_("Trial Expired"),
+			# Translators: Message shown when trial is expired.
+			message=_("Your 10 minutes trial of UnicornDVC has expired."),
+			style=wx.OK | wx.ICON_WARNING
+		)
 
 	def on_connected_as_dvc_slave_failed(self):
 		if self.slave_transport.successful_connects == 0:
