@@ -284,9 +284,6 @@ class UnicornLicenseDialog(wx.Dialog):
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
 		main_sizer.Add(wx.StaticText(self, label=message))
 		main_sizer_helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
-		#Translators: The input field to enter an e-mail address
-		self.emailAddress = main_sizer_helper.addLabeledControl(_("&E-mail Address:"), wx.TextCtrl)
-		self.emailAddress.Enabled=not self.isLicensed
 		#Translators: The input field to enter the Unicorn license key
 		self.key = main_sizer_helper.addLabeledControl(_("&License Key:"), wx.TextCtrl)
 		self.key.Enabled=not self.isLicensed
@@ -297,7 +294,7 @@ class UnicornLicenseDialog(wx.Dialog):
 		self.SetSizer(main_sizer)
 		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
 		self.Show()
-		self.emailAddress.SetFocus()
+		self.key.SetFocus()
 
 	def on_ok(self, evt):
 		if not self.isLicensed:
@@ -306,14 +303,14 @@ class UnicornLicenseDialog(wx.Dialog):
 			self.deactivate(evt)
 
 	def activate(self, evt):
-		if not self.emailAddress.Value or not self.key.Value:
-			gui.messageBox(_("You must enter a valid e-mail address and license key."), _("Error"), wx.OK | wx.ICON_ERROR)
-			self.emailAddress.SetFocus()
+		if not self.key.Value:
+			gui.messageBox(_("You must enter a valid license key."), _("Error"), wx.OK | wx.ICON_ERROR)
+			self.key.SetFocus()
 			return
 		progressDialog = gui.IndeterminateProgressDialog(self, _("Performing request"), _("Please wait while your license is being activated..."))
 
 		try:
-			success, message = watchdog.cancellableExecute(self.lib.ActivateLicense, self.emailAddress.Value, self.key.Value)
+			success, message = watchdog.cancellableExecute(self.lib.ActivateLicense, self.key.Value)
 		except:
 			success = False
 			message = _("There was an error while performing your request.")

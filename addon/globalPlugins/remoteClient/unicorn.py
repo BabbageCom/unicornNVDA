@@ -98,7 +98,7 @@ class Unicorn(object):
 
 	def registerFunctions(self):
 		self.c_Initialize=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Initialize',self.lib),((1,'connectionType'),))
-		self.c_ActivateLicense=WINFUNCTYPE(c_wchar_p, c_wchar_p, c_wchar_p, POINTER(BOOL))(('Unicorn_ActivateLicense',self.lib),((1,'emailAddress'),(1,'licenseKey'),(1,'success')))
+		self.c_ActivateLicense=WINFUNCTYPE(c_wchar_p, c_wchar_p, POINTER(BOOL))(('Unicorn_ActivateLicense',self.lib),((1,'licenseKey'),(1,'success')))
 		self.c_DeactivateLicense=WINFUNCTYPE(c_wchar_p, POINTER(BOOL))(('Unicorn_DeactivateLicense',self.lib),((1,'success'),))
 		self.IsLicensed=WINFUNCTYPE(BOOL)(('Unicorn_IsLicensed',self.lib))
 		self.c_Open=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Open',self.lib),((1,'connectionType'),))
@@ -133,9 +133,9 @@ class Unicorn(object):
 	def Initialize(self):
 		return self.c_Initialize(self.connectionType)
 
-	def ActivateLicense(self, emailAddress, licenseKey):
+	def ActivateLicense(self, licenseKey):
 		success = BOOL()
-		message = self.c_ActivateLicense(emailAddress, licenseKey, byref(success))
+		message = self.c_ActivateLicense(licenseKey, byref(success))
 		return (success, message)
 
 	def DeactivateLicense(self):
