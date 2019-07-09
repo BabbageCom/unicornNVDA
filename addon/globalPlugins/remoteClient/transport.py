@@ -15,6 +15,7 @@ import NVDAHelper
 import win32con
 import watchdog
 from unicorn import *
+import core
 
 PROTOCOL_VERSION = 2
 DVCTYPES=('slave','master')
@@ -167,7 +168,6 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		if connection_type not in DVCTYPES:
 			raise ValueError("Unsupported connection type for DVC connection")
 		log.info("Connecting to DVC as %s" % connection_type)
-		self.trial = False
 		self.lib=Unicorn(DVCTYPES.index(connection_type), self)
 		self.opened = False
 		self.initialized = False
@@ -207,8 +207,6 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		elif res in (1,87):
 			self.callback_manager.call_callbacks('transport_connection_failed')
 			raise WinError(res)		
-		elif res == 0x4000:
-			self.trial=True
 		elif res:
 			raise WinError(res)		
 		if self.connection_type=='master' and not unicorn_client(): # Master
@@ -288,8 +286,6 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 	def handle_p2p(self, version, **kwargs):
 		if version==PROTOCOL_VERSION:
 			self.send(type='client_joined', client=dict(id=-1, connection_type=self.connection_type))
-			if self.trial:
-				self.callback_manager.call_callbacks('transport_connection_in_trial_mode')
 		else:
 			self.send(type='version_mismatch')
 
@@ -332,6 +328,12 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		self.callback_manager.call_callbacks('msg_client_left', client=dict(id=-1))
 		self._disconnect()
 		return 0
+
+	def _OnTrial(self):
+		core.callLater(2000, self.callback_manager.call_callbacks,'transport_connection_in_trial_mode')
+
+	def _OnTrialExpired(self):
+		self.callback_manager.call_callbacks('transport_trial_expired')
 
 class ConnectorThread(threading.Thread):
 

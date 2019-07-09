@@ -83,27 +83,60 @@ class Unicorn(object):
 		self.registerCallbacks(callbackHandler)
 
 	def registerCallbacks(self, callbackHandler):
-		callbacks=("Connected","Disconnected","Terminated","OnNewChannelConnection","OnDataReceived","OnReadError","OnClose")
+		callbacks=(
+			"Connected",
+			"Disconnected",
+			"Terminated",
+			"OnNewChannelConnection",
+			"OnDataReceived",
+			"OnReadError",
+			"OnClose",
+			"OnTrial",
+			"OnTrialExpired",
+		)
 		callbackPointers=(cast(getattr(callbackHandler,"c_%s"%callback),POINTER(c_void_p)) for callback in callbacks)
 		self.SetCallbacks(*callbackPointers)
 
 	def registerFunctions(self):
 		self.c_Initialize=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Initialize',self.lib),((1,'connectionType'),))
-		self.c_ActivateLicense=WINFUNCTYPE(c_wchar_p, c_wchar_p, c_wchar_p, POINTER(BOOL))(('Unicorn_ActivateLicense',self.lib),((1,'emailAddress'),(1,'licenseKey'),(1,'success')))
+		self.c_ActivateLicense=WINFUNCTYPE(c_wchar_p, c_wchar_p, POINTER(BOOL))(('Unicorn_ActivateLicense',self.lib),((1,'licenseKey'),(1,'success')))
 		self.c_DeactivateLicense=WINFUNCTYPE(c_wchar_p, POINTER(BOOL))(('Unicorn_DeactivateLicense',self.lib),((1,'success'),))
 		self.IsLicensed=WINFUNCTYPE(BOOL)(('Unicorn_IsLicensed',self.lib))
 		self.c_Open=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Open',self.lib),((1,'connectionType'),))
 		self.c_Write=WINFUNCTYPE(DWORD,c_uint,DWORD,POINTER(BYTE))(('Unicorn_Write',self.lib),((1,'connectionType'),(1,'cbSize'),(1,'pBuffer')))
 		self.c_Close=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Close',self.lib),((1,'connectionType'),))
 		self.c_Terminate=WINFUNCTYPE(DWORD,c_uint)(('Unicorn_Terminate',self.lib),((1,'connectionType'),))
-		self.c_SetCallbacks=WINFUNCTYPE(c_void_p,c_uint,POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p),POINTER(c_void_p))(('Unicorn_SetCallbacks',self.lib),((1,'connectionType'),(1,'_Connected'),(1,'_Disconnected'),(1,'_Terminated'),(1,'_OnNewChannelConnection'),(1,'_OnDataReceived'),(1,'_OnReadError'),(1,'_OnClose')))
+		self.c_SetCallbacks=WINFUNCTYPE(
+			c_void_p,
+			c_uint,
+			POINTER(c_void_p),
+			POINTER(c_void_p),
+			POINTER(c_void_p),
+			POINTER(c_void_p),
+			POINTER(c_void_p),
+			POINTER(c_void_p),
+			POINTER(c_void_p),
+			POINTER(c_void_p),
+			POINTER(c_void_p)
+		)(('Unicorn_SetCallbacks',self.lib),(
+			(1,'connectionType'),
+			(1,'_Connected'),
+			(1,'_Disconnected'),
+			(1,'_Terminated'),
+			(1,'_OnNewChannelConnection'),
+			(1,'_OnDataReceived'),
+			(1,'_OnReadError'),
+			(1,'_OnClose'),
+			(1,'_OnTrial'),
+			(1,'_OnTrialExpired')
+		))
 
 	def Initialize(self):
 		return self.c_Initialize(self.connectionType)
 
-	def ActivateLicense(self, emailAddress, licenseKey):
+	def ActivateLicense(self, licenseKey):
 		success = BOOL()
-		message = self.c_ActivateLicense(emailAddress, licenseKey, byref(success))
+		message = self.c_ActivateLicense(licenseKey, byref(success))
 		return (success, message)
 
 	def DeactivateLicense(self):
@@ -123,8 +156,30 @@ class Unicorn(object):
 	def Terminate(self):
 		return self.c_Terminate(self.connectionType)
 
-	def SetCallbacks(self, _Connected,_Disconnected,_Terminated,_OnNewChannelConnection,_OnDataReceived,_OnReadError,_OnClose):
-		return self.c_SetCallbacks(self.connectionType, _Connected, _Disconnected, _Terminated, _OnNewChannelConnection, _OnDataReceived, _OnReadError, _OnClose)
+	def SetCallbacks(
+		self,
+		_Connected,
+		_Disconnected,
+		_Terminated,
+		_OnNewChannelConnection,
+		_OnDataReceived,
+		_OnReadError,
+		_OnClose,
+		_OnTrial,
+		_OnTrialExpired
+	):
+		return self.c_SetCallbacks(
+			self.connectionType,
+			_Connected,
+			_Disconnected,
+			_Terminated,
+			_OnNewChannelConnection,
+			_OnDataReceived,
+			_OnReadError,
+			_OnClose,
+			_OnTrial,
+			_OnTrialExpired
+		)
 
 class UnicornCallbackHandler(object):
 
@@ -136,6 +191,8 @@ class UnicornCallbackHandler(object):
 		self.c_OnDataReceived=WINFUNCTYPE(DWORD,DWORD,POINTER(BYTE))(self._OnDataReceived)
 		self.c_OnReadError=WINFUNCTYPE(DWORD,DWORD)(self._OnReadError)
 		self.c_OnClose=WINFUNCTYPE(DWORD)(self._OnClose)
+		self.c_OnTrial=WINFUNCTYPE(None)(self._OnTrial)
+		self.c_OnTrialExpired=WINFUNCTYPE(None)(self._OnTrialExpired)
 
 	def _Connected(self):
 		raise NotImplementedError
@@ -157,3 +214,9 @@ class UnicornCallbackHandler(object):
 
 	def _OnClose(self):
 		raise NotImplementedError
+
+	def _OnTrial(self):
+		raise NotImplementedError
+
+	def _OnTrialExpired(self):
+		raise NotImplementedError	
