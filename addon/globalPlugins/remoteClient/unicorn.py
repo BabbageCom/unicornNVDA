@@ -12,15 +12,16 @@ CTYPE_SERVER=0
 CTYPE_CLIENT=1
 
 def unicorn_lib_path():
+	locations = [os.path.abspath(os.path.dirname(__file__))]
 	try:
 		with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\UnicornDVC",0,winreg.KEY_READ|winreg.KEY_WOW64_32KEY) as k:
-			location = os.path.join(winreg.QueryValueEx(k,"InstallLocation")[0],'lib64' if ARCHITECTURE==64 else 'lib')
+			locations.append(os.path.join(winreg.QueryValueEx(k,"InstallLocation")[0],'lib64' if ARCHITECTURE==64 else 'lib'))
 	except WindowsError:
-		# Assume the lib is in the current directory
-		location = os.path.abspath(os.path.dirname(__file__))
-	standardLibPath=os.path.join(location,'UnicornDVCAppLib.dll')
-	if os.path.isfile(standardLibPath):
-		return str(standardLibPath)
+		pass
+	for location in locations:
+		standardLibPath=os.path.join(location,'UnicornDVCAppLib.dll')
+		if os.path.isfile(standardLibPath):
+			return str(standardLibPath)
 	return None
 
 def vdp_rdpvcbridge_path():
