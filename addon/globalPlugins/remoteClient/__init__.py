@@ -76,7 +76,7 @@ class GlobalPlugin(GlobalPlugin):
 		if globalVars.appArgs.secure:
 			self.handle_secure_desktop()
 		if cs['autoconnect'] and not self.master_session and not self.slave_session:
-			wx.CallLater(50,self.perform_autoconnect)
+			wx.CallLater(500,self.perform_autoconnect)
 		self.sd_focused = False
 		self.rs_focused = False
 
