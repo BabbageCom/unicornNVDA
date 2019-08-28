@@ -2,11 +2,11 @@ version: "{branch}-{build}"
 environment:
  PY_PYTHON: 3.7-32
 install:
-  - py -m pip install markdown
+  - py -m pip install markdown scons
 
 build_script:
-  - PY scons.py
-  - PY scons.py pot
+  - c:\python37\scripts\scons
+  - c:\python37\scripts\scons pot
 
 artifacts:
   - path: '*.nvda-addon'
