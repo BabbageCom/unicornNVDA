@@ -33,7 +33,6 @@ import shlobj
 import uuid
 from . import server
 from . import bridge
-from .socket_utils import SERVER_PORT, address_to_hostport, hostport_to_address
 import api
 import ssl
 from . import callback_manager

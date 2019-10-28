@@ -9,7 +9,6 @@ import gui
 import serializer
 import server
 import transport
-import socket_utils
 from unicorn import *
 from ctypes import byref, create_unicode_buffer, WinError
 import watchdog
