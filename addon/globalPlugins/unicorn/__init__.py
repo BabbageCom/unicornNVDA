@@ -4,19 +4,19 @@ import threading
 import time
 import socket
 from globalPluginHandler import GlobalPlugin
-import Queue
+import queue
 import select
 import wx
 from config import conf, isInstalledCopy
 from .configSpec import configSpec
 import gui
-import beep_sequence
+from . import beep_sequence
 import speech
-from transport import RelayTransport,DVCTransport
+from .transport import RelayTransport,DVCTransport
 import braille
-import local_machine
-import serializer
-from session import MasterSession, SlaveSession
+from . import local_machine
+from . import serializer
+from .session import MasterSession, SlaveSession
 import url_handler
 import time
 import ui
@@ -25,22 +25,26 @@ addonHandler.initTranslation()
 import ctypes.wintypes as ctypes
 import win32con
 from logHandler import log
-import dialogs
+from . import dialogs
 import IAccessibleHandler
 import tones
 import globalVars
 import shlobj
 import uuid
-import server
-import bridge
-from socket_utils import SERVER_PORT, address_to_hostport, hostport_to_address
+from . import server
+from . import bridge
+from .socket_utils import SERVER_PORT, address_to_hostport, hostport_to_address
 import api
 import ssl
-import callback_manager
+from . import callback_manager
 import installer
-import unicorn
+from . import unicorn
+import json
 
-REMOTE_SHELL_CLASSES={u'TscShellContainerClass', u'CtxICADisp', u'Transparent Windows Client'}
+REMOTE_SHELL_CLASSES = {
+	'TscShellContainerClass',
+	'CtxICADisp', 'Transparent Windows Client'
+}
 
 
 def skipEventAndCall(handler):	
@@ -61,19 +65,16 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_session = None
 		self.master_session = None
 		self.create_menu()
-		self.connecting = False
 		self.master_transport = None
 		self.slave_transport = None
-		self._secondary_started_server = False
 		self.sd_server = None
 		self.sd_relay = None
 		self.sd_bridge = None
 		self.temp_location = os.path.join(shlobj.SHGetFolderPath(0, shlobj.CSIDL_COMMON_APPDATA), 'temp')
-		self.ipc_file = os.path.join(self.temp_location, 'remote.ipc')
+		self.ipc_file = os.path.join(self.temp_location, 'unicorn.ipc')
 		if globalVars.appArgs.secure:
 			self.handle_secure_desktop()
-		if cs['autoconnect'] and not self.master_session and not self.slave_session:
-			wx.CallLater(500,self.perform_autoconnect)
+		wx.CallLater(500,self.perform_autoconnect)
 		self.sd_focused = False
 		self.rs_focused = False
 
@@ -83,10 +84,10 @@ class GlobalPlugin(GlobalPlugin):
 		conf['unicorn'].spec.update(configSpec)
 
 	def perform_autoconnect(self):
-		if conf['unicorn']['autoConnectServer']:
-			self.connect_slave()
 		if conf['unicorn']['autoConnectClient']:
 			self.connect_master()
+		if conf['unicorn']['autoConnectServer']:
+			self.connect_slave()
 
 	def create_menu(self):
 		self.menu = wx.Menu()
@@ -153,12 +154,15 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine, is_secondary=bool(self.master_transport))
 		self.slave_transport = transport
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_connected_as_slave)
-		if self.master_transport:
-			self.slave_transport.callback_manager.register_callback('msg_set_braille_info', self.master_session.send_braille_info)
+		self.slave_transport.callback_manager.register_callback('msg_set_braille_info', self.send_braille_info_to_master)
 		self.slave_transport.reconnector_thread.start()
 		self.disconnect_slave_item.Enable()
 		self.connect_slave_item.Disable()
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_slave_failed)
+
+	def send_braille_info_to_master(self, *args, **kwargs):
+		if self.master_session:
+			self.master_session.send_braille)info(*args, **kwargs)
 
 	def disconnect(self):
 		if self.master_transport is not None:
@@ -174,10 +178,6 @@ class GlobalPlugin(GlobalPlugin):
 		beep_sequence.beep_sequence_async((880, 60), (440, 60))
 		self.disconnect_master_item.Disable()
 		self.connect_master_item.Enable()
-
-	def on_disconnect_master(self, evt):
-		evt.Skip()
-		self.disconnect_master()
 
 	def disconnecting_as_master(self):
 		if self.menu:
@@ -198,10 +198,6 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_slave_item.Disable()
 		self.connect_slave_item.Enable()
 
-	def on_disconnect_slave(self, evt):
-		evt.Skip()
-		self.disconnect_slave()
-
 	def on_mute_item(self, evt):
 		evt.Skip()
 		self.local_machine.is_muted = self.mute_item.IsChecked()
@@ -210,6 +206,14 @@ class GlobalPlugin(GlobalPlugin):
 		self.local_machine.is_muted = not self.local_machine.is_muted
 		self.mute_item.Check(self.local_machine.is_muted)
 	script_toggle_remote_mute.__doc__ = _("""Mute or unmute the speech coming from the remote computer""")
+
+	def on_connected_as_master(self):
+		self.mute_item.Enable(True)
+		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
+		self.evaluate_remote_shell()
+		# Translators: Presented when connected to the remote computer.
+		ui.message(_("Connected in server mode!"))
+		beep_sequence.beep_sequence_async((440, 60), (660, 60))
 
 	def on_connected_as_master_failed(self):
 		if self.master_transport.successful_connects == 0:
@@ -221,35 +225,21 @@ class GlobalPlugin(GlobalPlugin):
 
 	def on_disconnected_as_master(self):
 		# Translators: Presented when connection to a remote computer was interupted.
-		ui.message(_("Connection interrupted"))
+		ui.message(_("Connection as client interrupted"))
 
 	def on_connected_as_slave(self):
 		log.info("Connected DVC in server mode")
 		self.callback_manager.call_callbacks('transport_connect', connection_type='slave', transport=self.slave_transport)
 
-	def start_control_server(self, server_port, channel):
-		self.server = server.Server(server_port, channel)
-		server_thread = threading.Thread(target=self.server.run)
-		server_thread.daemon = True
-		server_thread.start()
-
 	def evaluate_remote_shell(self):
 		focus = api.getFocusObject()
 		fg = api.getForegroundObject()
-		if fg.windowClassName in REMOTE_SHELL_CLASSES or focus.windowClassName in REMOTE_SHELL_CLASSES or (focus.appModule.appName==u'vmware-view' and focus.windowClassName.startswith("ATL")):
+		if fg.windowClassName in REMOTE_SHELL_CLASSES or focus.windowClassName in REMOTE_SHELL_CLASSES or (focus.appModule.appName=='vmware-view' and focus.windowClassName.startswith("ATL")):
 			self.rs_focused = True
 			wx.CallAfter(self.enter_remote_shell)
-		elif self.rs_focused and fg.windowClassName not in REMOTE_SHELL_CLASSES and focus.windowClassName not in REMOTE_SHELL_CLASSES and not (focus.appModule.appName==u'vmware-view' and focus.windowClassName.startswith("ATL")):
+		elif self.rs_focused and fg.windowClassName not in REMOTE_SHELL_CLASSES and focus.windowClassName not in REMOTE_SHELL_CLASSES and not (focus.appModule.appName=='vmware-view' and focus.windowClassName.startswith("ATL")):
 			self.rs_focused = False
 			self.leave_remote_shell()
-
-	def on_connected_as_master(self):
-		self.mute_item.Enable(True)
-		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
-		self.evaluate_remote_shell()
-		# Translators: Presented when connected to the remote computer.
-		ui.message(_("Connected!"))
-		beep_sequence.beep_sequence_async((440, 60), (660, 60))
 
 	def on_initialize_failed(self, e):
 		# Translators: Title of the connection error dialog.
@@ -374,6 +364,15 @@ class GlobalPlugin(GlobalPlugin):
 	def sd_on_master_display_change(self, **kwargs):
 		self.sd_relay.send(type='set_display_size', sizes=self.slave_session.master_display_sizes)
 
+	def connect_slave_relay(self, address, key):
+		transport = RelayTransport(serializer=serializer.JSONSerializer(), address=address, channel=key, connection_type='slave')
+		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine)
+		self.slave_transport = transport
+		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_connected_as_slave)
+		self.slave_transport.reconnector_thread.start()
+		self.disconnect_slave_item.Enable()
+		self.connect_slave_item.Disable()
+
 	def handle_secure_desktop(self):
 		try:
 			with open(self.ipc_file) as fp:
@@ -393,8 +392,3 @@ class GlobalPlugin(GlobalPlugin):
 		if connector is not None:
 			return connector.connected
 		return False
-
-	__gestures = {
-		"kb:alt+NVDA+pageDown": "disconnect",
-		"kb:control+shift+NVDA+c": "push_clipboard",
-	}

@@ -1,4 +1,3 @@
-from __future__ import division
 import collections
 import time
 import tones
