@@ -25,8 +25,6 @@ class SlaveSession(RemoteSession):
 		self.transport.callback_manager.register_callback('msg_client_left', self.handle_client_disconnected)
 		self.masters = defaultdict(dict)
 		self.master_display_sizes = []
-		self.last_client_index = None
-		self.transport.callback_manager.register_callback('msg_index', self.update_index)
 		self.transport.callback_manager.register_callback('transport_disconnected', self.handle_disconnected)
 		self.transport.callback_manager.register_callback('transport_closing', self.handle_transport_closing)
 		self.patcher = nvda_patcher.NVDASlavePatcher(is_secondary=is_secondary)
@@ -82,7 +80,6 @@ class SlaveSession(RemoteSession):
 		patcher_callbacks = (('speak', self.speak), ('beep', self.beep), ('wave', self.playWaveFile), ('cancel_speech', self.cancel_speech), ('display', self.display), ('set_display', self.set_display_size))
 		for event, callback in patcher_callbacks:
 			self.patcher.register_callback(event, callback)
-		self.patcher.set_last_index_callback(self._get_lastIndex)
 
 	def remove_patch_callbacks(self):
 		patcher_callbacks = (('speak', self.speak), ('beep', self.beep), ('wave', self.playWaveFile), ('cancel_speech', self.cancel_speech), ('display', self.display), ('set_display', self.set_display_size))
@@ -95,9 +92,6 @@ class SlaveSession(RemoteSession):
 	def cancel_speech(self):
 		self.transport.send(type="cancel")
 
-	def _get_lastIndex(self):
-		return self.last_client_index
-
 	def display(self, cells):
 		# Only send braille data when there are controlling machines with a braille display
 		if self.has_braille_masters():
@@ -106,16 +100,11 @@ class SlaveSession(RemoteSession):
 	def has_braille_masters(self):
 		return bool([i for i in self.master_display_sizes if i > 0])
 
-	def update_index(self, index=None, **kwargs):
-		self.last_client_index = index
-
-
 class MasterSession(RemoteSession):
 
 	def __init__(self, *args, **kwargs):
 		super(MasterSession, self).__init__(*args, **kwargs)
 		self.slaves = defaultdict(dict)
-		self.index_thread = None
 		self.patcher = nvda_patcher.NVDAMasterPatcher()
 		self.patch_callbacks_added = False
 		self.transport.callback_manager.register_callback('msg_speak', self.local_machine.speak)
@@ -125,14 +114,6 @@ class MasterSession(RemoteSession):
 		self.transport.callback_manager.register_callback('msg_client_left', self.handle_client_disconnected)
 		self.transport.callback_manager.register_callback('msg_channel_joined', self.handle_channel_joined)
 		self.transport.callback_manager.register_callback('msg_send_braille_info', self.send_braille_info)
-		self.transport.callback_manager.register_callback('transport_connected', self.handle_connected)
-		self.transport.callback_manager.register_callback('transport_disconnected', self.handle_disconnected)
-
-	def handle_connected(self):
-		synthDriverHandler.synthIndexReached.register(self.send_index)
-
-	def handle_disconnected(self):
-		synthDriverHandler.synthIndexReached.unregister(self.send_index)
 
 	def handle_channel_joined(self, channel=None, clients=None, origin=None, **kwargs):
 		if clients is None:
@@ -161,9 +142,6 @@ class MasterSession(RemoteSession):
 
 	def braille_input(self, **kwargs):
 		self.transport.send(type="braille_input", **kwargs)
-
-	def send_index(self, synth=None, index=None):
-		self.transport.send(type="index", index=index)
 
 	def add_patch_callbacks(self):
 		patcher_callbacks = (('braille_input', self.braille_input), ('set_display', self.send_braille_info))
