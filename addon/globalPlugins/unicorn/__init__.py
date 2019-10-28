@@ -49,6 +49,7 @@ class GlobalPlugin(GlobalPlugin):
 
 	def __init__(self, *args, **kwargs):
 		super(GlobalPlugin, self).__init__(*args, **kwargs)
+		self.initializeConfig()
 		if unicorn.unicorn_lib_path():
 			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(dialogs.UnicornPanel)
 		self.local_machine = local_machine.LocalMachine()
@@ -85,7 +86,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.connect_master_item = self.menu.Append(wx.ID_ANY, _("Connect client"))
 		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, skipEventAndCall(self.connect_master), self.connect_master_item)
 		self.disconnect_master_item = self.menu.Append(wx.ID_ANY, _("Disconnect client"))
-		self.disconnect_master_item.Disable()
+		self.disconnect_master_item.Enable(False)
 		gui.mainFrame.sysTrayIcon.Bind(
 			wx.EVT_MENU,
 			skipEventAndCall(self.disconnect_master), self.disconnect_master_item
@@ -96,7 +97,7 @@ class GlobalPlugin(GlobalPlugin):
 			skipEventAndCall(self.connect_slave), self.connect_slave_item
 		)
 		self.disconnect_slave_item = self.menu.Append(wx.ID_ANY, _("Disconnect server"))
-		self.disconnect_slave_item.Disable()
+		self.disconnect_slave_item.Enable(False)
 		gui.mainFrame.sysTrayIcon.Bind(
 			wx.EVT_MENU,
 			skipEventAndCall(self.disconnect_slave), self.disconnect_slave_item
@@ -152,7 +153,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.master_transport = transport
 		self.master_transport.reconnector_thread.start()
 		self.disconnect_master_item.Enable()
-		self.connect_master_item.Disable()
+		self.connect_master_item.Enable(False)
 
 	def connect_slave(self):
 		try:
@@ -166,7 +167,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_transport.callback_manager.register_callback('msg_set_braille_info', self.send_braille_info_to_master)
 		self.slave_transport.reconnector_thread.start()
 		self.disconnect_slave_item.Enable()
-		self.connect_slave_item.Disable()
+		self.connect_slave_item.Enable(False)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_slave_failed)
 
 	def send_braille_info_to_master(self, *args, **kwargs):
@@ -185,13 +186,13 @@ class GlobalPlugin(GlobalPlugin):
 		self.master_transport = None
 		self.master_session = None
 		beep_sequence.beep_sequence_async((880, 60), (440, 60))
-		self.disconnect_master_item.Disable()
+		self.disconnect_master_item.Enable(False)
 		self.connect_master_item.Enable()
 
 	def disconnecting_as_master(self):
 		if self.menu:
 			self.connect_master_item.Enable()
-			self.disconnect_master_item.Disable()
+			self.disconnect_master_item.Enable(False)
 			self.mute_item.Check(False)
 			self.mute_item.Enable(False)
 		if self.local_machine:
@@ -204,7 +205,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_transport = None
 		self.slave_session = None
 		beep_sequence.beep_sequence_async((660, 60), (330, 60))
-		self.disconnect_slave_item.Disable()
+		self.disconnect_slave_item.Enable(False)
 		self.connect_slave_item.Enable()
 
 	def on_mute_item(self, evt):
@@ -254,7 +255,7 @@ class GlobalPlugin(GlobalPlugin):
 		)
 
 	def on_connected_as_master_failed(self):
-		self.disconnect_master_item.Disable()
+		self.disconnect_master_item.Enable(False)
 		self.connect_master_item.Enable()
 		if self.master_transport.successful_connects == 0:
 			self.disconnect_master()
@@ -383,7 +384,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_connected_as_slave)
 		self.slave_transport.reconnector_thread.start()
 		self.disconnect_slave_item.Enable()
-		self.connect_slave_item.Disable()
+		self.connect_slave_item.Enable(False)
 
 	def handle_secure_desktop(self):
 		try:

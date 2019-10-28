@@ -16,21 +16,28 @@ class UnicornPanel(SettingsPanel):
 		self.autoConnectSlaveCheckBox = sizer_helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in server mode on startup"))
 		)
-		self.autoConnectSlaveCheckBox.Value = config.conf["unicorn"]["autoConnectSlave"]
+		self.autoConnectSlaveCheckBox.Value = config.conf["unicorn"]["autoConnectServer"]
 		self.autoConnectMasterCheckBox = sizer_helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in client mode on startup"))
 		)
-		self.autoConnectMasterCheckBox.Value = config.conf["unicorn"]["autoConnectMaster"]
+		self.autoConnectMasterCheckBox.Value = config.conf["unicorn"]["autoConnectClient"]
 		self.autoConnectMasterCheckBox.Enable(bool(unicorn.unicorn_client()))
 
+		licenseButton = sizer_helper.addItem(wx.Button(self, label=_("Manage Unicorn license...")))
+		licenseButton.Bind(wx.EVT_BUTTON,self.onLicense)
+
+	def onLicense(self, evt):
+		with UnicornLicenseDialog(self) as dlg:
+			dlg.ShowModal()
+
 	def onSave(self):
-		config.conf["unicorn"]["autoConnectSlave"] = self.autoConnectSlaveCheckBox.Value
-		config.conf["unicorn"]["autoConnectMaster"] = self.autoConnectMasterCheckBox.Value
+		config.conf["unicorn"]["autoConnectServer"] = self.autoConnectSlaveCheckBox.Value
+		config.conf["unicorn"]["autoConnectClient"] = self.autoConnectMasterCheckBox.Value
 
 
 class UnicornLicenseDialog(wx.Dialog):
 
-	def __init__(self, parent, id, title):
+	def __init__(self, parent):
 		if not bool(unicorn.unicorn_client()):
 			wx.CallAfter(
 				gui.messageBox,
@@ -51,7 +58,7 @@ class UnicornLicenseDialog(wx.Dialog):
 				wx.OK | wx.ICON_ERROR
 			)
 			raise
-		super(UnicornLicenseDialog, self).__init__(parent, id, title=title)
+		super().__init__(parent, id=wx.ID_ANY, title=_("Manage Unicorn License"))
 		self.isLicensed = self.lib.IsLicensed()
 		if self.isLicensed:
 			message = _("Your copy of UnicornDVC is properly licensed.\nChoose OK to deactivate the product, or Cancel to close this dialog.")
@@ -90,6 +97,7 @@ class UnicornLicenseDialog(wx.Dialog):
 		except Exception:
 			success = False
 			message = _("There was an error while performing your request.")
+			log.error("Activation error", exc_info=True)
 
 		if not success:
 			wx.CallAfter(
@@ -115,6 +123,7 @@ class UnicornLicenseDialog(wx.Dialog):
 		except:
 			success = False
 			message = _("There was a timeout while performing your request.")
+			log.ERROR("Activation error", exc_info=True)
 
 		if not success:
 			wx.CallAfter(

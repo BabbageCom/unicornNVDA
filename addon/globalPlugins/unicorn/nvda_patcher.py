@@ -1,7 +1,5 @@
-import callback_manager
+from . import callback_manager
 import synthDriverHandler
-import tones
-import nvwave
 import gui
 import speech
 import inputCore
@@ -41,7 +39,7 @@ class NVDAPatcher(callback_manager.CallbackManager):
 		return result
 
 class NVDASlavePatcher(NVDAPatcher):
-	"""Class to manage patching of synth, tones, nvwave, and braille."""
+	"""Class to manage patching of synth and braille."""
 
 	def __init__(self, is_secondary=False):
 		super(NVDASlavePatcher, self).__init__()
