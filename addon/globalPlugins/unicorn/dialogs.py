@@ -1,46 +1,55 @@
-import sys
-import os
-import json
-import threading
-import urllib
 import wx
 import gui
-import serializer
-import transport
-from .unicorn import *
-from ctypes import byref, create_unicode_buffer, WinError
+from . import unicorn
 import watchdog
 import addonHandler
-addonHandler.initTranslation()
 from gui.settingsDialogs import SettingsPanel
+import config
+addonHandler.initTranslation()
+
 
 class UnicornPanel(SettingsPanel):
 	title = _("UnicornDVC")
 
-	def makeSettings(self, sizer):
+	def makeSettings(self, settingsSizer):
 		sizer_helper = gui.guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
-		self.autoConnectSlaveCheckBox = sizer_helper.addItem(wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in server mode on startup")))
+		self.autoConnectSlaveCheckBox = sizer_helper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in server mode on startup"))
+		)
 		self.autoConnectSlaveCheckBox.Value = config.conf["unicorn"]["autoConnectSlave"]
-		self.autoConnectMasterCheckBox = sizer_helper.addItem(wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in client mode on startup")))
+		self.autoConnectMasterCheckBox = sizer_helper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in client mode on startup"))
+		)
 		self.autoConnectMasterCheckBox.Value = config.conf["unicorn"]["autoConnectMaster"]
-		self.autoConnectMasterCheckBox.Enable(bool(unicorn_client()))
+		self.autoConnectMasterCheckBox.Enable(bool(unicorn.unicorn_client()))
 
 	def onSave(self):
 		config.conf["unicorn"]["autoConnectSlave"] = self.autoConnectSlaveCheckBox.Value
 		config.conf["unicorn"]["autoConnectMaster"] = self.autoConnectMasterCheckBox.Value
 
+
 class UnicornLicenseDialog(wx.Dialog):
 
 	def __init__(self, parent, id, title):
-		if not bool(unicorn_client()):
-			wx.CallAfter(gui.messageBox,_("The UnicornDVC client is not available on your system. Managing a license is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
+		if not bool(unicorn.unicorn_client()):
+			wx.CallAfter(
+				gui.messageBox,
+				_("The UnicornDVC client is not available on your system. Managing a license is therefore not supported."),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR
+			)
 			return
 		# Create a temporary instance of the Unicorn object.
 		try:
-			self.handler = UnicornCallbackHandler()
-			self.lib=Unicorn(CTYPE_CLIENT, self.handler)
+			self.handler = unicorn.UnicornCallbackHandler()
+			self.lib = unicorn.Unicorn(unicorn.CTYPE_CLIENT, self.handler)
 		except AttributeError:
-			wx.CallAfter(gui.messageBox,_("The UnicornDVC client available on your system is out of date. Managing a license is therefore not supported."), _("Error"), wx.OK | wx.ICON_ERROR)
+			wx.CallAfter(
+				gui.messageBox,
+				_("The UnicornDVC client available on your system is out of date. Managing a license is therefore not supported."),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR
+			)
 			raise
 		super(UnicornLicenseDialog, self).__init__(parent, id, title=title)
 		self.isLicensed = self.lib.IsLicensed()
@@ -51,12 +60,12 @@ class UnicornLicenseDialog(wx.Dialog):
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
 		main_sizer.Add(wx.StaticText(self, label=message))
 		main_sizer_helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
-		#Translators: The input field to enter the Unicorn license key
+		# Translators: The input field to enter the Unicorn license key
 		self.key = main_sizer_helper.addLabeledControl(_("&License Key:"), wx.TextCtrl)
-		self.key.Enabled=not self.isLicensed
+		self.key.Enabled = not self.isLicensed
 		main_sizer_helper.addDialogDismissButtons(self.CreateButtonSizer(wx.OK | wx.CANCEL))
 		self.Bind(wx.EVT_BUTTON, self.on_ok, id=wx.ID_OK)
-		main_sizer.Add(main_sizer_helper.sizer, border = gui.guiHelper.BORDER_FOR_DIALOGS, flag=wx.ALL)
+		main_sizer.Add(main_sizer_helper.sizer, border=gui.guiHelper.BORDER_FOR_DIALOGS, flag=wx.ALL)
 		main_sizer.Fit(self)
 		self.SetSizer(main_sizer)
 		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
@@ -78,19 +87,24 @@ class UnicornLicenseDialog(wx.Dialog):
 
 		try:
 			success, message = watchdog.cancellableExecute(self.lib.ActivateLicense, self.key.Value)
-		except:
+		except Exception:
 			success = False
 			message = _("There was an error while performing your request.")
 
 		if not success:
-			wx.CallAfter(gui.messageBox,
+			wx.CallAfter(
+				gui.messageBox,
 				_("An error has occured:\n{error}").format(error=message),
-					_("Error"), wx.OK | wx.ICON_ERROR)
+				_("Error"),
+				wx.OK | wx.ICON_ERROR
+			)
 		else:
 			evt.Skip()
-			wx.CallAfter(gui.messageBox,
+			wx.CallAfter(
+				gui.messageBox,
 				_("UnicornDVC has been activated!\nAdditional info: {message}").format(message=message),
-					_("Congratulations!"), wx.OK | wx.ICON_EXCLAMATION)
+				_("Congratulations!"), wx.OK | wx.ICON_EXCLAMATION
+			)
 		progressDialog.done()
 
 	def deactivate(self, evt):
@@ -103,12 +117,18 @@ class UnicornLicenseDialog(wx.Dialog):
 			message = _("There was a timeout while performing your request.")
 
 		if not success:
-			wx.CallAfter(gui.messageBox,
+			wx.CallAfter(
+				gui.messageBox,
 				_("An error has occured:\n{error}").format(error=message),
-					_("Error"), wx.OK | wx.ICON_ERROR)
+				_("Error"),
+				wx.OK | wx.ICON_ERROR
+			)
 		else:
 			evt.Skip()
-			wx.CallAfter(gui.messageBox,
+			wx.CallAfter(
+				gui.messageBox,
 				_("UnicornDVC has been deactivated!\nAdditional info: {message}").format(message=message),
-					_("Congratulations!"), wx.OK | wx.ICON_EXCLAMATION)
+				_("Congratulations!"),
+				wx.OK | wx.ICON_EXCLAMATION
+			)
 		progressDialog.done()

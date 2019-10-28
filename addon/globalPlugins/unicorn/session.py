@@ -1,17 +1,11 @@
 import threading
 import time
-import connection_info
-import gui
 import speech
-import ui
-import tones
 import braille
-import configuration
 import nvda_patcher
 from collections import defaultdict
-import connection_info
-import hashlib
-from transport import PROTOCOL_VERSION
+import tones
+
 
 class RemoteSession(object):
 
@@ -20,7 +14,8 @@ class RemoteSession(object):
 		self.patcher = None
 		self.transport = transport
 
-class SlaveSession(RemoteSession):	
+
+class SlaveSession(RemoteSession):
 	"""Session that runs on the slave and manages state."""
 
 	def __init__(self, *args, is_secondary=False, **kwargs):
@@ -28,7 +23,7 @@ class SlaveSession(RemoteSession):
 		self.transport.callback_manager.register_callback('msg_client_joined', self.handle_client_connected)
 		self.transport.callback_manager.register_callback('msg_client_left', self.handle_client_disconnected)
 		self.masters = defaultdict(dict)
-		self.master_display_sizes=[]
+		self.master_display_sizes = []
 		self.last_client_index = None
 		self.transport.callback_manager.register_callback('msg_index', self.update_index)
 		self.transport.callback_manager.register_callback('transport_disconnected', self.handle_disconnected)
@@ -108,10 +103,11 @@ class SlaveSession(RemoteSession):
 			self.transport.send(type="display", cells=cells)
 
 	def has_braille_masters(self):
-		return bool([i for i in self.master_display_sizes if i>0])
+		return bool([i for i in self.master_display_sizes if i > 0])
 
 	def update_index(self, index=None, **kwargs):
 		self.last_client_index = index
+
 
 class MasterSession(RemoteSession):
 
@@ -163,10 +159,10 @@ class MasterSession(RemoteSession):
 		tones.beep(108, 300)
 
 	def send_braille_info(self, **kwargs):
-		display=braille.handler.display
+		display = braille.handler.display
 		self.transport.send(type="set_braille_info", name=display.name, numCells=display.numCells or braille.handler.displaySize)
 
-	def braille_input(self,**kwargs):
+	def braille_input(self, **kwargs):
 		self.transport.send(type="braille_input", **kwargs)
 
 	def send_indexes(self):
@@ -174,7 +170,7 @@ class MasterSession(RemoteSession):
 		POLL_TIME = 0.05
 		while self.transport.connected:
 			synth = speech.getSynth()
-			if synth is None: #While switching synths
+			if synth is None:  # While switching synths
 				time.sleep(POLL_TIME)
 				continue
 			index = synth.lastIndex

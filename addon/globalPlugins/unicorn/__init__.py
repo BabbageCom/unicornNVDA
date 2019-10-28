@@ -1,33 +1,23 @@
 import os
-import sys
 import threading
-import time
 import socket
 from globalPluginHandler import GlobalPlugin
-import queue
-import select
 import wx
-from config import conf, isInstalledCopy
+from config import conf
 from .configSpec import configSpec
 import gui
 from . import beep_sequence
-import speech
-from .transport import RelayTransport,DVCTransport
+from .transport import RelayTransport, DVCTransport
 import braille
 from . import local_machine
 from . import serializer
 from .session import MasterSession, SlaveSession
-import url_handler
-import time
 import ui
 import addonHandler
-addonHandler.initTranslation()
-import ctypes.wintypes as ctypes
-import win32con
 from logHandler import log
 from . import dialogs
 import IAccessibleHandler
-import tones
+
 import globalVars
 import shlobj
 import uuid
@@ -36,9 +26,9 @@ from . import bridge
 import api
 import ssl
 from . import callback_manager
-import installer
 from . import unicorn
 import json
+addonHandler.initTranslation()
 
 REMOTE_SHELL_CLASSES = {
 	'TscShellContainerClass',
@@ -75,12 +65,12 @@ class GlobalPlugin(GlobalPlugin):
 		self.ipc_file = os.path.join(self.temp_location, 'unicorn.ipc')
 		if globalVars.appArgs.secure:
 			self.handle_secure_desktop()
-		wx.CallLater(500,self.perform_autoconnect)
+		wx.CallLater(500, self.perform_autoconnect)
 		self.sd_focused = False
 		self.rs_focused = False
 
 	def initializeConfig(self):
-		if not "unicorn" in conf:
+		if "unicorn" not in conf:
 			conf['unicorn'] = {}
 		conf['unicorn'].spec.update(configSpec)
 
@@ -96,15 +86,30 @@ class GlobalPlugin(GlobalPlugin):
 		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, skipEventAndCall(self.connect_master), self.connect_master_item)
 		self.disconnect_master_item = self.menu.Append(wx.ID_ANY, _("Disconnect client"))
 		self.disconnect_master_item.Disable()
-		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, skipEventAndCall(self.disconnect_master), self.disconnect_master_item)
+		gui.mainFrame.sysTrayIcon.Bind(
+			wx.EVT_MENU,
+			skipEventAndCall(self.disconnect_master), self.disconnect_master_item
+		)
 		self.connect_slave_item = self.menu.Append(wx.ID_ANY, _("Connect server"))
-		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, skipEventAndCall(self.connect_slave), self.connect_slave_item)
+		gui.mainFrame.sysTrayIcon.Bind(
+			wx.EVT_MENU,
+			skipEventAndCall(self.connect_slave), self.connect_slave_item
+		)
 		self.disconnect_slave_item = self.menu.Append(wx.ID_ANY, _("Disconnect server"))
 		self.disconnect_slave_item.Disable()
-		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, skipEventAndCall(self.disconnect_slave), self.disconnect_slave_item)
-		self.mute_item = self.menu.Append(wx.ID_ANY, _("Mute remote"), _("Mute speech and sounds from the remote computer"), kind=wx.ITEM_CHECK)
+		gui.mainFrame.sysTrayIcon.Bind(
+			wx.EVT_MENU,
+			skipEventAndCall(self.disconnect_slave), self.disconnect_slave_item
+		)
+		self.mute_item = self.menu.Append(
+			wx.ID_ANY,
+			_("Mute remote"), _("Mute speech and sounds from the remote computer"), kind=wx.ITEM_CHECK
+			)
 		self.mute_item.Enable(False)
-		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, self.on_mute_item, self.mute_item)
+		gui.mainFrame.sysTrayIcon.Bind(
+			wx.EVT_MENU,
+			self.on_mute_item, self.mute_item
+		)
 
 		self.submenu_item = gui.mainFrame.sysTrayIcon.menu.Insert(2, wx.ID_ANY, _("UnicornDVC"), self.menu)
 
@@ -114,7 +119,7 @@ class GlobalPlugin(GlobalPlugin):
 		if self.submenu_item is not None:
 			try:
 				gui.mainFrame.sysTrayIcon.menu.Remove(self.submenu_item)
-			except AttributeError: # We can get this somehow from wx python when NVDA is shuttingdown, just ignore
+			except AttributeError:  # We can get this somehow from wx python when NVDA is shuttingdown, just ignore
 				pass
 			self.submenu_item.Destroy()
 			self.submenu_item = None
@@ -124,7 +129,7 @@ class GlobalPlugin(GlobalPlugin):
 
 		try:
 			os.unlink(self.ipc_file)
-		except:
+		except Exception:
 			pass
 
 		if dialogs.UnicornPanel in gui.settingsDialogs.NVDASettingsDialog.categoryClasses:
@@ -166,7 +171,7 @@ class GlobalPlugin(GlobalPlugin):
 
 	def send_braille_info_to_master(self, *args, **kwargs):
 		if self.master_session:
-			self.master_session.send_braille)info(*args, **kwargs)
+			self.master_session.send_braille_info(*args, **kwargs)
 
 	def disconnect(self):
 		if self.master_transport is not None:
@@ -219,14 +224,6 @@ class GlobalPlugin(GlobalPlugin):
 		ui.message(_("Connected in server mode!"))
 		beep_sequence.beep_sequence_async((440, 60), (660, 60))
 
-	def on_connected_as_master_failed(self):
-		if self.master_transport.successful_connects == 0:
-			self.disconnect()
-			# Translators: Title of the connection error dialog.
-			gui.messageBox(parent=gui.mainFrame, caption=_("Error Connecting"),
-			# Translators: Message shown when cannot connect to the remote computer.
-			message=_("Unable to connect to the remote computer"), style=wx.OK | wx.ICON_WARNING)
-
 	def on_disconnected_as_master(self):
 		# Translators: Presented when connection to a remote computer was interupted.
 		ui.message(_("Connection as client interrupted"))
@@ -238,28 +235,36 @@ class GlobalPlugin(GlobalPlugin):
 	def evaluate_remote_shell(self):
 		focus = api.getFocusObject()
 		fg = api.getForegroundObject()
-		if fg.windowClassName in REMOTE_SHELL_CLASSES or focus.windowClassName in REMOTE_SHELL_CLASSES or (focus.appModule.appName=='vmware-view' and focus.windowClassName.startswith("ATL")):
+		if fg.windowClassName in REMOTE_SHELL_CLASSES or focus.windowClassName in REMOTE_SHELL_CLASSES or (focus.appModule.appName == 'vmware-view' and focus.windowClassName.startswith("ATL")):
 			self.rs_focused = True
 			wx.CallAfter(self.enter_remote_shell)
-		elif self.rs_focused and fg.windowClassName not in REMOTE_SHELL_CLASSES and focus.windowClassName not in REMOTE_SHELL_CLASSES and not (focus.appModule.appName=='vmware-view' and focus.windowClassName.startswith("ATL")):
+		elif self.rs_focused and fg.windowClassName not in REMOTE_SHELL_CLASSES and focus.windowClassName not in REMOTE_SHELL_CLASSES and not (focus.appModule.appName == 'vmware-view' and focus.windowClassName.startswith("ATL")):
 			self.rs_focused = False
 			self.leave_remote_shell()
 
 	def on_initialize_failed(self, e):
 		# Translators: Title of the connection error dialog.
-		wx.CallAfter(gui.messageBox,parent=gui.mainFrame, caption=_("Error Initializing"),
-		# Translators: Message shown when cannot connect to the remote computer.
-		message=_("Can't initialize UnicornDVC to create a virtual channel. Please make sure that you have a valid license.\nInternal error: {error}").format(error=e.strerror), style=wx.OK | wx.ICON_WARNING)
+		wx.CallAfter(
+			gui.messageBox,
+			parent=gui.mainFrame,
+			caption= _("Error Initializing"),
+			# Translators: Message shown when cannot connect to the remote computer.
+			message=_("Can't initialize UnicornDVC to create a virtual channel. Please make sure that you have a valid license.\nInternal error: {error}").format(error=e.strerror),
+			style=wx.OK | wx.ICON_WARNING
+		)
 
 	def on_connected_as_master_failed(self):
 		self.disconnect_master_item.Disable()
 		self.connect_master_item.Enable()
 		if self.master_transport.successful_connects == 0:
 			self.disconnect_master()
-			# Translators: Title of the connection error dialog.
-			gui.messageBox(parent=gui.mainFrame, caption=_("Error Connecting"),
-			# Translators: Message shown when cannot connect to the remote computer.
-			message=_("Unable to connect to the virtual channel. Please make sure that your client is set up correctly"), style=wx.OK | wx.ICON_WARNING)
+			gui.messageBox(
+				parent=gui.mainFrame,
+				caption=_("Error Connecting"),
+				# Translators: Message shown when cannot connect to the remote computer.
+				message=_("Unable to connect to the virtual channel. Please make sure that your client is set up correctly"),
+				style=wx.OK | wx.ICON_WARNING
+			)
 
 	def on_connected_in_trial_mode(self):
 		if globalVars.appArgs.secure:
@@ -287,10 +292,13 @@ class GlobalPlugin(GlobalPlugin):
 	def on_connected_as_slave_failed(self):
 		if self.slave_transport.successful_connects == 0:
 			self.disconnect_slave()
-			# Translators: Title of the connection error dialog.
-			gui.messageBox(parent=gui.mainFrame, caption=_("Error Connecting"),
-			# Translators: Message shown when cannot connect to the remote computer.
-			message=_("Unable to connect to the virtual channel. Please make sure that you are in a remote session and that your client is set up correctly"), style=wx.OK | wx.ICON_WARNING)
+			gui.messageBox(
+				parent=gui.mainFrame,
+				caption=_("Error Connecting"),
+				# Translators: Message shown when cannot connect to the remote computer.
+				message=_("Unable to connect to the virtual channel. Please make sure that you are in a remote session and that your client is set up correctly"),
+				style=wx.OK | wx.ICON_WARNING
+			)
 
 	def set_receiving_braille(self, state):
 		if state and self.master_session and self.master_session.patch_callbacks_added and braille.handler.enabled:
@@ -298,14 +306,14 @@ class GlobalPlugin(GlobalPlugin):
 			braille.handler.enabled = False
 			if braille.handler._cursorBlinkTimer:
 				braille.handler._cursorBlinkTimer.Stop()
-				braille.handler._cursorBlinkTimer=None
+				braille.handler._cursorBlinkTimer = None
 			if braille.handler.buffer is braille.handler.messageBuffer:
 				braille.handler.buffer.clear()
 				braille.handler.buffer = braille.handler.mainBuffer
 				if braille.handler._messageCallLater:
 					braille.handler._messageCallLater.Stop()
 					braille.handler._messageCallLater = None
-			self.local_machine.receiving_braille=True
+			self.local_machine.receiving_braille = True
 		elif self.master_session and not state:
 			self.master_session.patcher.unpatch_braille_input()
 			braille.handler.enabled = bool(braille.handler.displaySize)
