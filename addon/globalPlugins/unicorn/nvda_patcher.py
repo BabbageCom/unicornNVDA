@@ -51,8 +51,6 @@ class NVDASlavePatcher(NVDAPatcher):
 		self.orig_get_lastIndex  = None
 		self.last_index_callback = None
 		self.orig_setSynth  = None
-		self.orig_beep = None
-		self.orig_playWaveFile = None
 		self.orig_display = None
 
 	def patch_synth(self):
@@ -77,18 +75,6 @@ class NVDASlavePatcher(NVDAPatcher):
 		else:
 			self.orig_get_lastIndex = synth.__class__.lastIndex.fget
 			synth.__class__.lastIndex.fget = self._get_lastIndex
-
-	def patch_tones(self):
-		if self.orig_beep is not None:
-			return
-		self.orig_beep = tones.beep
-		tones.beep = self.beep
-
-	def patch_nvwave(self):
-		if self.orig_playWaveFile is not None:
-			return
-		self.orig_playWaveFile = nvwave.playWaveFile
-		nvwave.playWaveFile = self.playWaveFile
 
 	def patch_braille(self):
 		if self.orig_display is not None:
@@ -116,18 +102,6 @@ class NVDASlavePatcher(NVDAPatcher):
 			synth.__class__.lastIndex.fget = self.orig_get_lastIndex
 			self.orig_get_lastIndex = None
 
-	def unpatch_tones(self):
-		if self.orig_beep is None:
-			return
-		tones.beep = self.orig_beep
-		self.orig_beep = None
-
-	def unpatch_nvwave(self):
-		if self.orig_playWaveFile is None:
-			return
-		nvwave.playWaveFile = self.orig_playWaveFile
-		self.orig_playWaveFile = None
-
 	def unpatch_braille(self):
 		if self.orig_display is None:
 			return
@@ -140,16 +114,12 @@ class NVDASlavePatcher(NVDAPatcher):
 		if not self.is_secondary:
 			super(NVDASlavePatcher, self).patch()
 		self.patch_synth()
-		self.patch_tones()
-		self.patch_nvwave()
 		self.patch_braille()
 
 	def unpatch(self):
 		if not self.is_secondary:
 			super(NVDASlavePatcher, self).unpatch()
 		self.unpatch_synth()
-		self.unpatch_tones()
-		self.unpatch_nvwave()
 		self.unpatch_braille()
 
 	def speak(self, speechSequence):
@@ -160,20 +130,12 @@ class NVDASlavePatcher(NVDAPatcher):
 		self.call_callbacks('cancel_speech')
 		self.orig_cancel()
 
-	def beep(self, hz, length, left=50, right=50):
-		self.call_callbacks('beep', hz=hz, length=length, left=left, right=right)
-		return self.orig_beep(hz=hz, length=length, left=left, right=right)
-
 	def setSynth(self, *args, **kwargs):
 		orig = self.orig_setSynth
 		self.unpatch_synth()
 		result = orig(*args, **kwargs)
 		self.patch_synth()
 		return result
-
-	def playWaveFile(self, fileName, async=True):
-		self.call_callbacks('wave', fileName=fileName, async=async)
-		return self.orig_playWaveFile(fileName, async=async)
 
 	def display(self, cells):
 		self.call_callbacks('display', cells=cells)
