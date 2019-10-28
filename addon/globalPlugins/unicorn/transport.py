@@ -14,7 +14,7 @@ PROTOCOL_VERSION = 2
 DVCTYPES = ('slave', 'master')
 
 
-class Transport(object):
+class Transport:
 
 	def __init__(self, serializer):
 		self.serializer = serializer
@@ -31,7 +31,7 @@ class Transport(object):
 class TCPTransport(Transport):
 
 	def __init__(self, serializer, address, timeout=0):
-		super(TCPTransport, self).__init__(serializer=serializer)
+		super().__init__(serializer=serializer)
 		self.closed = False
 		# Buffer to hold partially received data
 		self.buffer = ""
@@ -57,7 +57,7 @@ class TCPTransport(Transport):
 		while self.server_sock is not None:
 			try:
 				readers, writers, error = select.select([self.server_sock], [], [self.server_sock])
-			except socket.error:
+			except OSError:
 				self.buffer = ""
 				break
 			if self.server_sock in error:
@@ -66,7 +66,7 @@ class TCPTransport(Transport):
 			if self.server_sock in readers:
 				try:
 					self.handle_server_data()
-				except socket.error:
+				except OSError:
 					self.buffer = ""
 					break
 		self.connected = False
@@ -112,7 +112,7 @@ class TCPTransport(Transport):
 				return
 			try:
 				self.server_sock.sendall(item)
-			except socket.error:
+			except OSError:
 				return
 
 	def send(self, type, **kwargs):
@@ -142,8 +142,8 @@ class TCPTransport(Transport):
 class RelayTransport(TCPTransport):
 
 	def __init__(self, serializer, address, timeout=0, channel=None, connection_type=None, protocol_version=PROTOCOL_VERSION):
-		super(RelayTransport, self).__init__(address=address, serializer=serializer, timeout=timeout)
-		log.info("Connecting to %s channel %s" % (address, channel))
+		super().__init__(address=address, serializer=serializer, timeout=timeout)
+		log.info(f"Connecting to {address} channel {channel}")
 		self.channel = channel
 		self.connection_type = connection_type
 		self.protocol_version = protocol_version
@@ -200,7 +200,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self.interrupt_event.clear()
 		res = self.lib.Open()
 		if res >= 1 << 31:
-			raise WindowsError("Raised WinError %s out of range" % hex(res))
+			raise OSError("Raised WinError %s out of range" % hex(res))
 		elif res in (1, 87):
 			self.callback_manager.call_callbacks('transport_connection_failed')
 			raise ctypes.WinError(res)
@@ -336,7 +336,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 class ConnectorThread(threading.Thread):
 
 	def __init__(self, connector, connect_delay=5, run_except=socket.error):
-		super(ConnectorThread, self).__init__()
+		super().__init__()
 		self.connect_delay = connect_delay
 		self.run_except = run_except
 		self.running = True

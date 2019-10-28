@@ -11,7 +11,7 @@ except ImportError:
 	sys.path.remove(sys.path[-1])
 import time
 
-class Server(object):
+class Server:
 	PING_TIME = 300
 
 	def __init__(self, port, password, bind_host='', bind_host6='[::]'):
@@ -53,7 +53,7 @@ class Server(object):
 	def accept_new_connection(self, sock):
 		try:
 			client_sock, addr = sock.accept()
-		except (ssl.SSLError, socket.error):
+		except (ssl.SSLError, OSError):
 			return
 		client_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 		client = Client(server=self, socket=client_sock)
@@ -77,7 +77,7 @@ class Server(object):
 		self.server_socket.close()
 		self.server_socket6.close()
 
-class Client(object):
+class Client:
 	id = 0
 
 	def __init__(self, server, socket):

@@ -48,7 +48,7 @@ class GlobalPlugin(GlobalPlugin):
 	scriptCategory = _("NVDA Remote")
 
 	def __init__(self, *args, **kwargs):
-		super(GlobalPlugin, self).__init__(*args, **kwargs)
+		super().__init__(*args, **kwargs)
 		self.initializeConfig()
 		if unicorn.unicorn_lib_path():
 			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(dialogs.UnicornPanel)
@@ -139,7 +139,7 @@ class GlobalPlugin(GlobalPlugin):
 	def connect_master(self):
 		try:
 			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master')
-		except WindowsError as e:
+		except OSError as e:
 			self.on_initialize_failed(e)
 			return
 		self.master_session = MasterSession(transport=transport, local_machine=self.local_machine)
@@ -158,7 +158,7 @@ class GlobalPlugin(GlobalPlugin):
 	def connect_slave(self):
 		try:
 			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
-		except WindowsError as e:
+		except OSError as e:
 			self.on_initialize_failed(e)
 			return
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine, is_secondary=bool(self.master_transport))

@@ -11,7 +11,7 @@ class NVDAPatcher(callback_manager.CallbackManager):
 	"""Base class to manage patching of braille display changes."""
 
 	def __init__(self):
-		super(NVDAPatcher, self).__init__()
+		super().__init__()
 		self.orig_setDisplayByName = None
 
 	def patch_set_display(self):
@@ -42,7 +42,7 @@ class NVDASlavePatcher(NVDAPatcher):
 	"""Class to manage patching of synth and braille."""
 
 	def __init__(self, is_secondary=False):
-		super(NVDASlavePatcher, self).__init__()
+		super().__init__()
 		self.is_secondary = is_secondary
 		self.orig_speak = None
 		self.orig_cancel = None
@@ -110,13 +110,13 @@ class NVDASlavePatcher(NVDAPatcher):
 
 	def patch(self):
 		if not self.is_secondary:
-			super(NVDASlavePatcher, self).patch()
+			super().patch()
 		self.patch_synth()
 		self.patch_braille()
 
 	def unpatch(self):
 		if not self.is_secondary:
-			super(NVDASlavePatcher, self).unpatch()
+			super().unpatch()
 		self.unpatch_synth()
 		self.unpatch_braille()
 
@@ -149,7 +149,7 @@ class NVDAMasterPatcher(NVDAPatcher):
 	"""Class to manage patching of braille input."""
 
 	def __init__(self):
-		super(NVDAMasterPatcher, self).__init__()
+		super().__init__()
 		self.orig_executeGesture = None
 
 	def patch_braille_input(self):
@@ -165,11 +165,11 @@ class NVDAMasterPatcher(NVDAPatcher):
 		self.orig_executeGesture = None
 
 	def patch(self):
-		super(NVDAMasterPatcher, self).patch()
+		super().patch()
 		# We do not patch braille input by default
 
 	def unpatch(self):
-		super(NVDAMasterPatcher, self).unpatch()
+		super().unpatch()
 		# To be sure, unpatch braille input
 		self.unpatch_braille_input()
 

@@ -7,7 +7,7 @@ import vision
 class BrailleInputGesture(braille.BrailleDisplayGesture, brailleInput.BrailleInputGesture):
 
 	def __init__(self, **kwargs):
-		super(BrailleInputGesture, self).__init__()
+		super().__init__()
 		for key, value in kwargs.items():
 			setattr(self, key, value)
 		self.source = "remote{}{}".format(self.source[0].upper(),self.source[1:])
