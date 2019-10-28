@@ -59,6 +59,8 @@ class GlobalPlugin(GlobalPlugin):
 
 	def __init__(self, *args, **kwargs):
 		super(GlobalPlugin, self).__init__(*args, **kwargs)
+		if unicorn.unicorn_lib_path():
+			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(dialogs.UnicornPanel)
 		self.local_machine = local_machine.LocalMachine()
 		self.callback_manager = callback_manager.CallbackManager()
 		self.slave_session = None
@@ -124,6 +126,9 @@ class GlobalPlugin(GlobalPlugin):
 			os.unlink(self.ipc_file)
 		except:
 			pass
+
+		if dialogs.UnicornPanel in gui.settingsDialogs.NVDASettingsDialog.categoryClasses:
+			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(dialogs.UnicornPanel)
 
 	def connect_master(self):
 		try:
