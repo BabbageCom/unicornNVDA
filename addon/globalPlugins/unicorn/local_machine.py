@@ -17,17 +17,6 @@ class LocalMachine(object):
 		self.is_muted = False
 		self.receiving_braille=False
 
-	def play_wave(self, fileName, async, **kwargs):
-		if self.is_muted:
-			return
-		if os.path.exists(fileName):
-			nvwave.playWaveFile(fileName=fileName, async=async)
-
-	def beep(self, hz, length, left, right, **kwargs):
-		if self.is_muted:
-			return
-		tones.beep(hz, length, left, right)
-
 	def cancel_speech(self, **kwargs):
 		if self.is_muted:
 			return
@@ -61,12 +50,3 @@ class LocalMachine(object):
 			size=braille.handler.display.numCells
 		braille.handler.displaySize=size
 		braille.handler.enabled = bool(size)
-
-	def send_key(self, vk_code=None, extended=None, pressed=None, **kwargs):
-		wx.CallAfter(input.send_key, vk_code, None, extended, pressed)
-
-	def set_clipboard_text(self, text, **kwargs):
-		api.copyToClip(text=text)
-
-	def send_SAS(self, **kwargs):
-		ctypes.windll.sas.SendSAS(0)
