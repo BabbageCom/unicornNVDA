@@ -11,7 +11,7 @@ addon_info = {
 	# for previously unpublished addons, please follow the community guidelines at:
 	# https://bitbucket.org/nvdaaddonteam/todo/raw/master/guideLines.txt
 	# add-on Name, internal for nvda
-	"addon_name" : "unicorn",
+	"addon_name" : "unicornNVDA",
 	# Add-on summary, usually the user visible name of the addon.
 	# Translators: Summary for this add-on to be shown on installation and add-on information.
 	"addon_summary" : _("UnicornDVC integration for NVDA"),
@@ -34,7 +34,7 @@ addon_info = {
 }
 
 
-import os.paths
+import os.path
 
 # Define the python files that are the sources of your add-on.
 # You can use glob expressions here, they will be expanded.

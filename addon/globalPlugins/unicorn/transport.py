@@ -1,20 +1,18 @@
 import threading
 import time
-import Queue
+import queue
 import ssl
 import socket
 import select
 from collections import defaultdict
-#from logging import getLogger
-#log = getLogger('transport')
 from logHandler import log
-import callback_manager
+from . import callback_manager
 from ctypes import *
 from ctypes.wintypes import *
 import NVDAHelper
 import win32con
 import watchdog
-from unicorn import *
+from .unicorn import *
 import core
 
 PROTOCOL_VERSION = 2
@@ -40,7 +38,7 @@ class TCPTransport(Transport):
 		self.closed = False
 		#Buffer to hold partially received data
 		self.buffer = ""
-		self.queue = Queue.Queue()
+		self.queue = queue.Queue()
 		self.address = address
 		self.server_sock = None
 		self.queue_thread = None
@@ -172,8 +170,8 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		self.opened = False
 		self.initialized = False
 		#Buffer to hold partially received data
-		self.buffer = u""
-		self.queue = Queue.Queue()
+		self.buffer = ""
+		self.queue = queue.Queue()
 		self.queue_thread = None
 		self.interrupt_event=threading.Event()
 		self.timeout = timeout
@@ -220,23 +218,23 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 		self.callback_manager.call_callbacks('transport_disconnected')
 		self._disconnect()
 
-	def handle_data(self, str):
-		data = self.buffer+str
-		self.buffer = u""
-		if data == u'':
+	def handle_data(self, string):
+		data = self.buffer+string
+		self.buffer = ""
+		if data == '':
 			self._disconnect()
 			return
-		if u'\n' not in data:
+		if '\n' not in data:
 			self.buffer += data
 			return
-		while u'\n' in data:
-			line, sep, data = data.partition(u'\n')
+		while '\n' in data:
+			line, sep, data = data.partition('\n')
 			self.parse(line)
 		self.buffer += data
 
 	def parse(self, line):
 		obj = self.serializer.deserialize(line)
-		if u'type' not in obj:
+		if 'type' not in obj:
 			return
 		callback = "msg_"+obj['type']
 		del obj['type']
@@ -311,11 +309,11 @@ class DVCTransport(Transport,UnicornCallbackHandler):
 
 	def _OnDataReceived(self,cbSize,pBuffer):
 		pBuffer=cast(pBuffer,POINTER(c_wchar*(cbSize/sizeof(c_wchar))))
-		str=u"".join(pBuffer.contents)
-		if u"\x00" not in str:
-			self.buffer+=str
+		string="".join(pBuffer.contents)
+		if "\x00" not in string:
+			self.buffer+=string
 		else:
-			self.handle_data(str.replace(u"\x00",u""))
+			self.handle_data(string.replace("\x00",""))
 		return 0
 
 	def _OnReadError(self,dwError):
