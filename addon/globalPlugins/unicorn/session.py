@@ -39,7 +39,7 @@ class SlaveSession(RemoteSession):
 		if not self.patch_callbacks_added:
 			self.add_patch_callbacks()
 			self.patch_callbacks_added = True
-		self.patcher.orig_beep(1000, 300)
+		tones.beep(1000, 300)
 		if client['connection_type'] == 'master':
 			self.masters[client['id']]['active'] = True
 
@@ -59,7 +59,7 @@ class SlaveSession(RemoteSession):
 			self.patch_callbacks_added = False
 
 	def handle_client_disconnected(self, client=None, **kwargs):
-		self.patcher.orig_beep(108, 300)
+		tones.beep(108, 300)
 		if client['connection_type'] == 'master':
 			del self.masters[client['id']]
 		if not self.masters:
@@ -77,17 +77,27 @@ class SlaveSession(RemoteSession):
 		self.set_display_size()
 
 	def add_patch_callbacks(self):
-		patcher_callbacks = (('speak', self.speak), ('beep', self.beep), ('wave', self.playWaveFile), ('cancel_speech', self.cancel_speech), ('display', self.display), ('set_display', self.set_display_size))
+		patcher_callbacks = (
+			('speak', self.speak),
+			('cancel_speech', self.cancel_speech),
+			('display', self.display),
+			('set_display', self.set_display_size)
+		)
 		for event, callback in patcher_callbacks:
 			self.patcher.register_callback(event, callback)
 
 	def remove_patch_callbacks(self):
-		patcher_callbacks = (('speak', self.speak), ('beep', self.beep), ('wave', self.playWaveFile), ('cancel_speech', self.cancel_speech), ('display', self.display), ('set_display', self.set_display_size))
+		patcher_callbacks = (
+			('speak', self.speak),
+			('cancel_speech', self.cancel_speech),
+			('display', self.display),
+			('set_display', self.set_display_size)
+		)
 		for event, callback in patcher_callbacks:
 			self.patcher.unregister_callback(event, callback)
 
-	def speak(self, speechSequence):
-		self.transport.send(type="speak", sequence=speechSequence)
+	def speak(self, speechSequence, priority):
+		self.transport.send(type="speak", sequence=speechSequence, priority=priority)
 
 	def cancel_speech(self):
 		self.transport.send(type="cancel")

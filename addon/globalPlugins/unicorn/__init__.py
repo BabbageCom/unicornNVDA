@@ -124,8 +124,6 @@ class GlobalPlugin(GlobalPlugin):
 				pass
 			self.submenu_item.Destroy()
 			self.submenu_item = None
-		self.menu.DestroyChildren()
-		self.menu.Destroy()
 		self.menu = None
 
 		try:
