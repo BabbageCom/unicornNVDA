@@ -5,6 +5,7 @@ import braille
 from . import nvda_patcher
 from collections import defaultdict
 import tones
+import synthDriverHandler
 
 
 class RemoteSession(object):
@@ -128,14 +129,10 @@ class MasterSession(RemoteSession):
 		self.transport.callback_manager.register_callback('transport_disconnected', self.handle_disconnected)
 
 	def handle_connected(self):
-		if self.index_thread is not None:
-			return
-		self.index_thread = threading.Thread(target=self.send_indexes)
-		self.index_thread.daemon = True
-		self.index_thread.start()
+		synthDriverHandler.synthIndexReached.register(self.send_index)
 
 	def handle_disconnected(self):
-		self.index_thread = None
+		synthDriverHandler.synthIndexReached.unregister(self.send_index)
 
 	def handle_channel_joined(self, channel=None, clients=None, origin=None, **kwargs):
 		if clients is None:
@@ -165,19 +162,8 @@ class MasterSession(RemoteSession):
 	def braille_input(self, **kwargs):
 		self.transport.send(type="braille_input", **kwargs)
 
-	def send_indexes(self):
-		last = None
-		POLL_TIME = 0.05
-		while self.transport.connected:
-			synth = speech.getSynth()
-			if synth is None:  # While switching synths
-				time.sleep(POLL_TIME)
-				continue
-			index = synth.lastIndex
-			if index != last:
-				self.transport.send(type="index", index=index)
-				last = index
-			time.sleep(POLL_TIME)
+	def send_index(self, synth=None, index=None):
+		self.transport.send(type="index", index=index)
 
 	def add_patch_callbacks(self):
 		patcher_callbacks = (('braille_input', self.braille_input), ('set_display', self.send_braille_info))
