@@ -40,6 +40,7 @@ import os.path
 # You can use glob expressions here, they will be expanded.
 pythonSources = [
 	'addon/globalPlugins/*/*.py',
+	'addon/*.py',
 ]
 
 # Files that contain strings for translation. Usually your python sources
