@@ -1,5 +1,7 @@
 from . import callback_manager
 import synthDriverHandler
+import tones
+import nvwave
 import gui
 import speech
 import inputCore
@@ -47,6 +49,8 @@ class NVDASlavePatcher(NVDAPatcher):
 		self.orig_speak = None
 		self.orig_cancel = None
 		self.orig_display = None
+		self.orig_beep = None
+		self.orig_playWaveFile = None
 
 	def patch_speech(self):
 		if self.orig_speak  is not None:
@@ -55,6 +59,18 @@ class NVDASlavePatcher(NVDAPatcher):
 		speech._manager.speak = self.speak
 		self.orig_cancel = speech._manager.cancel
 		speech._manager.cancel = self.cancel
+
+	def patch_tones(self):
+		if self.orig_beep is not None:
+			return
+		self.orig_beep = tones.beep
+		tones.beep = self.beep
+
+	def patch_nvwave(self):
+		if self.orig_playWaveFile is not None:
+			return
+		self.orig_playWaveFile = nvwave.playWaveFile
+		nvwave.playWaveFile = self.playWaveFile
 
 	def patch_braille(self):
 		if self.orig_display is not None:
@@ -70,6 +86,18 @@ class NVDASlavePatcher(NVDAPatcher):
 		speech._manager.cancel = self.orig_cancel
 		self.orig_cancel = None
 
+	def unpatch_tones(self):
+		if self.orig_beep is None:
+			return
+		tones.beep = self.orig_beep
+		self.orig_beep = None
+
+	def unpatch_nvwave(self):
+		if self.orig_playWaveFile is None:
+			return
+		nvwave.playWaveFile = self.orig_playWaveFile
+		self.orig_playWaveFile = None
+
 	def unpatch_braille(self):
 		if self.orig_display is None:
 			return
@@ -82,12 +110,16 @@ class NVDASlavePatcher(NVDAPatcher):
 		if not self.is_secondary:
 			super().patch()
 		self.patch_speech()
+		self.patch_tones()
+		self.patch_nvwave()
 		self.patch_braille()
 
 	def unpatch(self):
 		if not self.is_secondary:
 			super().unpatch()
 		self.unpatch_speech()
+		self.unpatch_tones()
+		self.unpatch_nvwave()
 		self.unpatch_braille()
 
 	def speak(self, speechSequence, priority):
@@ -97,6 +129,12 @@ class NVDASlavePatcher(NVDAPatcher):
 	def cancel(self):
 		self.call_callbacks('cancel_speech')
 		self.orig_cancel()
+
+	def beep(self, hz, length, left=50, right=50):
+		self.call_callbacks('beep', hz=hz, length=length, left=left, right=right)
+
+	def playWaveFile(self, fileName, asynchronous=True):
+		self.call_callbacks('wave', fileName=fileName, asynchronous=asynchronous)
 
 	def display(self, cells):
 		self.call_callbacks('display', cells=cells)

@@ -1,8 +1,11 @@
+import os
 import wx
 from . import input
 import speech
 import braille
 import inputCore
+import nvwave
+import tones
 
 
 class LocalMachine:
@@ -11,12 +14,25 @@ class LocalMachine:
 		self.is_muted = False
 		self.receiving_braille = False
 
+	def play_wave(self, fileName, asynchronous=True, **kwargs):
+		if self.is_muted:
+			return
+		# Python 2 compatibility
+		asynchronous = kwargs.get("async", asynchronous)
+		if os.path.exists(fileName):
+			nvwave.playWaveFile(fileName=fileName, asynchronous=asynchronous)
+
+	def beep(self, hz, length, left, right, **kwargs):
+		if self.is_muted:
+			return
+		tones.beep(hz, length, left, right)
+
 	def cancel_speech(self, **kwargs):
 		if self.is_muted:
 			return
 		wx.CallAfter(speech._manager.cancel)
 
-	def speak(self, sequence, priority, **kwargs):
+	def speak(self, sequence, priority=speech.priorities.SPRI_NORMAL, **kwargs):
 		if self.is_muted:
 			return
 		speech.beenCanceled = False

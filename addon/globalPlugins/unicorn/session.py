@@ -39,7 +39,7 @@ class SlaveSession(RemoteSession):
 		if not self.patch_callbacks_added:
 			self.add_patch_callbacks()
 			self.patch_callbacks_added = True
-		tones.beep(1000, 300)
+		self.patcher.orig_beep(1000, 300)
 		if client['connection_type'] == 'master':
 			self.masters[client['id']]['active'] = True
 
@@ -59,7 +59,7 @@ class SlaveSession(RemoteSession):
 			self.patch_callbacks_added = False
 
 	def handle_client_disconnected(self, client=None, **kwargs):
-		tones.beep(108, 300)
+		self.patcher.orig_beep(108, 300)
 		if client['connection_type'] == 'master':
 			del self.masters[client['id']]
 		if not self.masters:
@@ -80,6 +80,8 @@ class SlaveSession(RemoteSession):
 		patcher_callbacks = (
 			('speak', self.speak),
 			('cancel_speech', self.cancel_speech),
+			('beep', self.beep),
+			('wave', self.playWaveFile),
 			('display', self.display),
 			('set_display', self.set_display_size)
 		)
@@ -90,6 +92,8 @@ class SlaveSession(RemoteSession):
 		patcher_callbacks = (
 			('speak', self.speak),
 			('cancel_speech', self.cancel_speech),
+			('beep', self.beep),
+			('wave', self.playWaveFile),
 			('display', self.display),
 			('set_display', self.set_display_size)
 		)
@@ -101,6 +105,12 @@ class SlaveSession(RemoteSession):
 
 	def cancel_speech(self):
 		self.transport.send(type="cancel")
+
+	def beep(self, hz, length, left=50, right=50):
+		self.transport.send(type='tone', hz=hz, length=length, left=left, right=right)
+
+	def playWaveFile(self, fileName, asynchronous=True):
+		self.transport.send(type='wave', fileName=fileName, asynchronous=asynchronous)
 
 	def display(self, cells):
 		# Only send braille data when there are controlling machines with a braille display
@@ -119,6 +129,8 @@ class MasterSession(RemoteSession):
 		self.patch_callbacks_added = False
 		self.transport.callback_manager.register_callback('msg_speak', self.local_machine.speak)
 		self.transport.callback_manager.register_callback('msg_cancel', self.local_machine.cancel_speech)
+		self.transport.callback_manager.register_callback('msg_tone', self.local_machine.beep)
+		self.transport.callback_manager.register_callback('msg_wave', self.local_machine.play_wave)
 		self.transport.callback_manager.register_callback('msg_display', self.local_machine.display)
 		self.transport.callback_manager.register_callback('msg_client_joined', self.handle_client_connected)
 		self.transport.callback_manager.register_callback('msg_client_left', self.handle_client_disconnected)
