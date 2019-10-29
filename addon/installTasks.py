@@ -15,7 +15,7 @@ def onInstall():
 def askToRemove(addon):
 	if gui.messageBox(
 		# Translators: the label of a message box dialog.
-		_("You have installed an old and incompatible version of NVDA Remote. Do you want to uninstall it?"),
+		_("You have installed an old version of NVDA Remote, which is incompatible with the UnicornDVC add-on. Do you want to uninstall it? If you need the functionality found in NVDA Remote, you are advised to get it from the NVDA add-ons website."),
 		# Translators: the title of a message box dialog.
 		_("Uninstall incompatible add-on"),
 		wx.YES|wx.NO|wx.ICON_WARNING) == wx.YES:

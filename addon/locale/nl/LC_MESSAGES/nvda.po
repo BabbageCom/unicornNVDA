@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: nvdaremote 1.2\n"
-"Report-Msgid-Bugs-To: 'nvda-translations@freelists.org'\n"
-"POT-Creation-Date: \n"
-"PO-Revision-Date: 2019-03-22 15:50+0100\n"
+"Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
+"POT-Creation-Date: 2019-10-29 13:42+0100\n"
+"PO-Revision-Date: 2019-10-29 13:46+0100\n"
 "Last-Translator: Leonard de Ruijter <leonard@babbage.com>\n"
 "Language-Team: Babbage B.V. <info@babbage.com>\n"
 "Language: nl\n"
@@ -16,170 +16,63 @@ msgstr ""
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-SearchPath-0: .\n"
 
+#: addon\globalPlugins\unicorn\__init__.py:48
 msgid "NVDA Remote"
 msgstr "NVDA Externe Toegang"
 
-#. Translators: Item in NVDA Remote submenu to connect to a remote computer.
-msgid "Connect..."
-msgstr "Verbinden..."
+#: addon\globalPlugins\unicorn\__init__.py:86
+msgid "Connect client"
+msgstr "Client verbinden"
 
-msgid "Remotely connect to another computer running NVDA Remote Access"
-msgstr ""
-"Verbinding maken met een andere computer op afstand waarop NVDA Externe "
-"Toegang gebruikt wordt"
+#: addon\globalPlugins\unicorn\__init__.py:88
+msgid "Disconnect client"
+msgstr "Clientverbinding verbreken"
 
-#. Translators: Item in NVDA Remote submenu to disconnect from a remote computer.
-msgid "Disconnect"
-msgstr "Verbinding ver&breken"
+#: addon\globalPlugins\unicorn\__init__.py:94
+msgid "Connect server"
+msgstr "Server verbinden"
 
-msgid "Disconnect from another computer running NVDA Remote Access"
-msgstr ""
-"De verbinding verbreken met een andere computer op afstand waarop NVDA "
-"Externe Toegang gebruikt wordt"
+#: addon\globalPlugins\unicorn\__init__.py:99
+msgid "Disconnect server"
+msgstr "Serververbinding verbreken"
 
-#. Translators: Item in NVDA Remote submenu to connect to a secondary remote computer.
-msgid "Connect second session..."
-msgstr "Tweede sessie verbinden..."
-
-msgid "Connect to a second computer running NVDA Remote Access"
-msgstr "Verbindt met een tweede computer waarop NVDA externe toegang actief is"
-
-#. Translators: Item in NVDA Remote submenu to disconnect from a secondary remote computer.
-msgid "Disconnect second session"
-msgstr "Verbinding met tweede sessie verbreken"
-
-msgid "Disconnect from a second computer running NVDA Remote Access"
-msgstr ""
-"Verbreek de verbinding met een tweede computer waarop NVDA externe toegang "
-"actief is"
-
-#. Translators: Menu item in NvDA Remote submenu to mute speech and sounds from the remote computer.
+#: addon\globalPlugins\unicorn\__init__.py:107
 msgid "Mute remote"
 msgstr "Extern geluid &dempen"
 
+#: addon\globalPlugins\unicorn\__init__.py:107
 msgid "Mute speech and sounds from the remote computer"
 msgstr "Spraak en geluid van de externe computer dempen"
 
-#. Translators: Menu item in NVDA Remote submenu to push clipboard content to the remote computer.
-msgid "&Push clipboard"
-msgstr "&Klembord doorsturen"
+#: addon\globalPlugins\unicorn\__init__.py:115
+#: addon\globalPlugins\unicorn\dialogs.py:12
+msgid "UnicornDVC"
+msgstr "UnicornDVC"
 
-msgid "Push the clipboard to the other machine"
-msgstr "Stuurt de inhoud van het klembord door naar de andere machine"
-
-#. Translators: Menu item in NVDA Remote submenu to copy a link to the current session.
-msgid "Copy &link"
-msgstr "&Link kopiëren"
-
-msgid "Copy a link to the remote session"
-msgstr "Kopieer een link naar de externe sessie"
-
-#. Translators: Menu item in NvDA Remote submenu to open add-on options.
-msgid "&Options..."
-msgstr "&Opties..."
-
-#. Translators: The title of the add-on options dialog.
-msgid "Options"
-msgstr "Opties"
-
-#. Translators: Menu item in NVDA Remote submenu to send Control+Alt+Delete to the remote computer.
-msgid "Send Ctrl+Alt+Del"
-msgstr "&Ctrl+Alt+Del sturen"
-
-#. Translators: Menu item in NVDA Remote submenu to provide a license key for UnicornDVC.
-msgid "Manage Unicorn License..."
-msgstr "Unicorn licentie beheren..."
-
-msgid "Activate or deactivate UnicornDVC"
-msgstr "UnicornDVC activeren of deactiveren"
-
-#. Translators: Label of menu in NVDA tools menu.
-msgid "R&emote"
-msgstr "&Externe toegang"
-
-msgid "NVDA Remote Access"
-msgstr "NVDA Externe Toegang"
-
+#: addon\globalPlugins\unicorn\__init__.py:216
 msgid "Mute or unmute the speech coming from the remote computer"
 msgstr ""
 "Dempt de spraak die komt van de computer op afstand of heft het dempen op"
 
-msgid "Not connected."
-msgstr "niet verbonden."
-
-msgid "Clipboard pushed"
-msgstr "Klembord doorgestuurd"
-
-msgid "Unable to push clipboard"
-msgstr "Klembord doorgsturen niet mogelijk"
-
-msgid "Sends the contents of the clipboard to the remote machine"
-msgstr "Verstuurt de inhoud van het klembord naar de externe machine"
-
-msgid "Copied link"
-msgstr "Link gekopiëerd"
-
-msgid "Copies a link to the remote session to the clipboard"
-msgstr "Kopieert een link naar de externe sessie naar het klembord"
-
-#. Translators: The title of the Manage UnicornDVC license dialog.
-msgid "Manage UnicornDVC License"
-msgstr "UnicornDVC licentie beheren"
-
-#. Translators: Title of the connection error dialog.
-msgid "Error Connecting"
-msgstr "Fout bij verbinden"
-
-#. Translators: Message shown when cannot connect to the remote computer.
-msgid "Unable to connect to the remote computer"
-msgstr "Kan geen verbinding maken met externe computer"
-
-msgid "Disconnect a remote session"
-msgstr "Verbinding met externe sessie verbreken"
-
-#. Translators: Title of the connect dialog.
-msgid "Connect"
-msgstr "Verbinden"
-
-#. Translators: Title of the secondary connect dialog.
-msgid "Connect Second Session"
-msgstr "Tweede sessie verbinden"
-
-#. Translators: Presented when connected to the remote computer.
-msgid "Connected!"
-msgstr "Verbonden"
+#: addon\globalPlugins\unicorn\__init__.py:222
+msgid "Connected in client mode!"
+msgstr "Verbonden in clientmodus!"
 
 #. Translators: Presented when connection to a remote computer was interupted.
-msgid "Connection interrupted"
-msgstr "Verbinding onderbroken"
+#: addon\globalPlugins\unicorn\__init__.py:227
+msgid "Connection as client interrupted"
+msgstr "Verbinding als client onderbroken"
 
-#. Translators: A message to warn the user that handle keys from other applications should be on.
-msgid ""
-"The option to handle keys from other applications is disabled in your NVDA "
-"keyboard settings. In order to allow the keyboard of this machine to be "
-"controlled, this option should be enabled. Would you like to do this now?"
-msgstr ""
-"De optie om toetsen van andere toepassingen te verwerken is uitgeschakeld in "
-"de NVDA toetsenbordinstellingen. Om het toetsenbord van deze machine beheerd "
-"te laten worden, dient deze optie ingeschakeld te zijn. Wilt u dit nu doen?"
+#: addon\globalPlugins\unicorn\__init__.py:232
+msgid "Connected in server mode!"
+msgstr "Verbonden in servermodus!"
 
-#. Translators: The title of the warning dialog displayed when handle keys from other applications is disabled.
-msgid "Warning"
-msgstr "Waarschuwing"
-
-#. Translators: Presented in direct (client to server) remote connection when the controlled computer is ready.
-msgid "Connected to control server"
-msgstr "Verbonden met beheerserver"
-
-#. Translators: Presented in remote connection when the secondary session is ready.
-msgid "Secondary session connected"
-msgstr "Tweede sessie verbonden"
-
-#. Translators: Title of the connection error dialog.
+#: addon\globalPlugins\unicorn\__init__.py:249
 msgid "Error Initializing"
 msgstr "Initialisatiefout"
 
 #. Translators: Message shown when cannot connect to the remote computer.
+#: addon\globalPlugins\unicorn\__init__.py:251
 msgid ""
 "Can't initialize UnicornDVC to create a virtual channel. Please make sure "
 "that you have a valid license.\n"
@@ -189,7 +82,13 @@ msgstr ""
 "geldige licentie hebt.\n"
 "Interne foutmelding: {error}"
 
+#: addon\globalPlugins\unicorn\__init__.py:262
+#: addon\globalPlugins\unicorn\__init__.py:296
+msgid "Error Connecting"
+msgstr "Fout bij verbinden"
+
 #. Translators: Message shown when cannot connect to the remote computer.
+#: addon\globalPlugins\unicorn\__init__.py:264
 msgid ""
 "Unable to connect to the virtual channel. Please make sure that your client "
 "is set up correctly"
@@ -197,10 +96,12 @@ msgstr ""
 "Kan niet verbinden met het virtuele kanaal. Zorg ervoor dat uw client "
 "correct is ingesteld"
 
+#: addon\globalPlugins\unicorn\__init__.py:274
 msgid "License Warning"
 msgstr "Licentiewaarschuwing"
 
 #. Translators: Message shown when running in trial mode.
+#: addon\globalPlugins\unicorn\__init__.py:276
 msgid ""
 "UnicornDVC is running in trial mode. If this message is unexpected, please "
 "check whether you have a valid license."
@@ -209,14 +110,17 @@ msgstr ""
 "wanneer dit niet het geval zou moeten zijn."
 
 #. Translators: Title of the trial expireddialog.
+#: addon\globalPlugins\unicorn\__init__.py:285
 msgid "Trial Expired"
 msgstr "Demoversie verlopen"
 
 #. Translators: Message shown when trial is expired.
+#: addon\globalPlugins\unicorn\__init__.py:287
 msgid "Your 10 minutes trial of UnicornDVC has expired."
 msgstr "Je 10 minuten demo van UnicornDVC is verlopen."
 
 #. Translators: Message shown when cannot connect to the remote computer.
+#: addon\globalPlugins\unicorn\__init__.py:298
 msgid ""
 "Unable to connect to the virtual channel. Please make sure that you are in a "
 "remote session and that your client is set up correctly"
@@ -224,114 +128,19 @@ msgstr ""
 "Kan niet verbinden met het virtuele kanaal. Zorg ervoor dat u zich in een "
 "externe sessie bevindt en dat uw client correct is ingesteld"
 
-#. This is called from the hook thread and should be executed on the main thread.
-#. Translators: Presented when keyboard control is back to the controlling computer.
-msgid "Controlling local machine."
-msgstr "Lokale machine wordt beheert"
+#: addon\globalPlugins\unicorn\dialogs.py:17
+msgid "Auto-connect in server mode on startup"
+msgstr "Automatisch in servermodus verbinden bij opstarten"
 
-#. Translators: Presented when sending keyboard keys from the controlling computer to the controlled computer.
-msgid "Controlling remote machine."
-msgstr "Externe machine wordt beheert"
+#: addon\globalPlugins\unicorn\dialogs.py:21
+msgid "Auto-connect in client mode on startup"
+msgstr "Automatisch in clientmodus verbinden bij opstarten"
 
-msgid ""
-"NVDA Remote is already connected. Disconnect before opening a new connection."
-msgstr ""
-"NVDA externe toegang is reeds verbonden. Verbreek de verbinding alvorens een "
-"nieuwe verbinding te openen."
+#: addon\globalPlugins\unicorn\dialogs.py:26
+msgid "Manage Unicorn license..."
+msgstr "Unicorn-licentie beheren..."
 
-msgid "NVDA Remote Already Connected"
-msgstr "NVDA externe toegang reeds verbonden"
-
-msgid "Do you wish to control the machine on server {server} with key {key}?"
-msgstr "Wilt u de machine op server {server} met sleutel {key} beheren?"
-
-msgid ""
-"Do you wish to allow this machine to be controlled on server {server} with "
-"key {key}?"
-msgstr ""
-"Wilt u het beheren van deze machine toestaan op server {server} met sleutel "
-"{key}?"
-
-msgid "NVDA Remote Connection Request"
-msgstr "NVDA externe toegang verbindingsverzoek"
-
-#. Translators: The label of an edit field in connect dialog to enter name or address of the remote computer.
-msgid "&Host:"
-msgstr "&Adres:"
-
-#. Translators: Label of the edit field to enter key (password) to secure the remote connection.
-msgid "&Key:"
-msgstr "&Sleutel:"
-
-#. Translators: The button used to generate a random key/password.
-msgid "&Generate Key"
-msgstr "Sleutel &genereren"
-
-#. Translators: Used in server mode to obtain the external IP address for the server (controlled computer) for direct connection.
-msgid "Get External &IP"
-msgstr "Extern &IP opvragen"
-
-#. Translators: Label of the field displaying the external IP address if using direct (client to server) connection.
-msgid "&External IP:"
-msgstr "&Extern IP:"
-
-#. Translators: The label of an edit field in connect dialog to enter the port the server will listen on.
-msgid "&Port:"
-msgstr "&Poort:"
-
-msgid "Successfully retrieved IP address. Port {port} is open."
-msgstr "IP-adres succesvol verkregen. Poort {port} is open."
-
-msgid "Success"
-msgstr "Succes"
-
-msgid "Retrieved external IP, but port {port} is not currently forwarded."
-msgstr "IP-adres succesvol verkregen, maar poort {port} is niet geopend."
-
-msgid ""
-"Unable to contact portcheck server, please manually retrieve your IP address"
-msgstr ""
-"Kan geen verbinding maken met de portcheck server, vraag uw ip-adres "
-"handmatig op"
-
-msgid "Error"
-msgstr "Fout"
-
-msgid "TCP Client"
-msgstr "TCP Client"
-
-msgid "TCP Server"
-msgstr "TCP Server"
-
-msgid "Virtual channel (RDP/ICA/PCoIP)"
-msgstr "Virtueel kanaal (RDP/ICA/PCoIP)"
-
-msgid "Control another machine"
-msgstr "Beheer een andere machine"
-
-msgid "Allow this machine to be controlled"
-msgstr "Laat deze machine beheerd worden"
-
-msgid "Both host and key must be set."
-msgstr "Zowel adres als sleutel moeten worden ingevoerd."
-
-msgid "Both port and key must be set."
-msgstr "Zowel poort als sleutel moeten worden ingevoerd."
-
-#. Translators: A checkbox in add-on options dialog to set whether remote server is started when NVDA starts.
-msgid "Auto-connect on startup"
-msgstr "Automatisch verbinden bij opstarten"
-
-#. Translators: Whether or not to use a relay server when autoconnecting
-msgid "Use Remote Control Server"
-msgstr "Gebruik externe beheerserver"
-
-msgid "Host Control Server"
-msgstr "Beheerserver hosten"
-
-msgid "Use a virtual channel"
-msgstr "Gebruik een virtueel kanaal"
-
+#: addon\globalPlugins\unicorn\dialogs.py:44
 msgid ""
 "The UnicornDVC client is not available on your system. Managing a license is "
 "therefore not supported."
@@ -339,6 +148,15 @@ msgstr ""
 "De UnicornDVC client is niet beschikbaar op je systeem. Het beheren van een "
 "licentie is niet mogelijk."
 
+#: addon\globalPlugins\unicorn\dialogs.py:45
+#: addon\globalPlugins\unicorn\dialogs.py:57
+#: addon\globalPlugins\unicorn\dialogs.py:90
+#: addon\globalPlugins\unicorn\dialogs.py:106
+#: addon\globalPlugins\unicorn\dialogs.py:132
+msgid "Error"
+msgstr "Fout"
+
+#: addon\globalPlugins\unicorn\dialogs.py:56
 msgid ""
 "The UnicornDVC client available on your system is out of date. Managing a "
 "license is therefore not supported."
@@ -346,6 +164,11 @@ msgstr ""
 "De UnicornDVC client op je systeem is gedateerd. Het beheren van een "
 "licentie is niet mogelijk."
 
+#: addon\globalPlugins\unicorn\dialogs.py:61
+msgid "Manage Unicorn License"
+msgstr "Unicorn-licentie beheren"
+
+#: addon\globalPlugins\unicorn\dialogs.py:64
 msgid ""
 "Your copy of UnicornDVC is properly licensed.\n"
 "Choose OK to deactivate the product, or Cancel to close this dialog."
@@ -354,6 +177,7 @@ msgstr ""
 "Kies Ok om het product te deactiveren, of Annuleren om dit venster te "
 "sluiten."
 
+#: addon\globalPlugins\unicorn\dialogs.py:66
 msgid ""
 "Your copy of UnicornDVC doesn't seem to be licensed.\n"
 "Enter your license key in the respective field and choose OK to activate the "
@@ -366,21 +190,29 @@ msgstr ""
 "Kies Annuleren om dit venster te sluiten."
 
 #. Translators: The input field to enter the Unicorn license key
+#: addon\globalPlugins\unicorn\dialogs.py:71
 msgid "&License Key:"
 msgstr "&Licentiecode:"
 
+#: addon\globalPlugins\unicorn\dialogs.py:90
 msgid "You must enter a valid license key."
 msgstr "Je dient een geldige licentiecode in te voeren."
 
+#: addon\globalPlugins\unicorn\dialogs.py:93
+#: addon\globalPlugins\unicorn\dialogs.py:119
 msgid "Performing request"
 msgstr "Verzoek wordt uitgevoerd"
 
+#: addon\globalPlugins\unicorn\dialogs.py:93
 msgid "Please wait while your license is being activated..."
 msgstr "Een ogenblik geduld terwijl je licentie geactiveerd wordt..."
 
+#: addon\globalPlugins\unicorn\dialogs.py:99
 msgid "There was an error while performing your request."
 msgstr "Er is een fout opgetreden bij het uitvoeren van je verzoek."
 
+#: addon\globalPlugins\unicorn\dialogs.py:105
+#: addon\globalPlugins\unicorn\dialogs.py:131
 msgid ""
 "An error has occured:\n"
 "{error}"
@@ -388,6 +220,7 @@ msgstr ""
 "Er heeft zich een fout voorgedaan:\n"
 "{error}"
 
+#: addon\globalPlugins\unicorn\dialogs.py:113
 msgid ""
 "UnicornDVC has been activated!\n"
 "Additional info: {message}"
@@ -395,15 +228,20 @@ msgstr ""
 "UnicornDVC is geactiveerd!\n"
 "Aanvullende informatie: {message}"
 
+#: addon\globalPlugins\unicorn\dialogs.py:114
+#: addon\globalPlugins\unicorn\dialogs.py:140
 msgid "Congratulations!"
 msgstr "Gefeliciteerd!"
 
+#: addon\globalPlugins\unicorn\dialogs.py:119
 msgid "Please wait while your license is being deactivated..."
 msgstr "Een ogenblik geduld terwijl je licentie gedeactiveerd wordt..."
 
+#: addon\globalPlugins\unicorn\dialogs.py:125
 msgid "There was a timeout while performing your request."
 msgstr "Er is een timeout opgetreden bij het verwerken van je verzoek>"
 
+#: addon\globalPlugins\unicorn\dialogs.py:139
 msgid ""
 "UnicornDVC has been deactivated!\n"
 "Additional info: {message}"
@@ -411,40 +249,288 @@ msgstr ""
 "UnicornDVC is gedeactiveerd!\n"
 "Aanvullende informatie: {message}"
 
-#. translators: Message for version mismatch
+#. Translators: the label of a message box dialog.
+#: addon\installTasks.py:18
 msgid ""
-"The version of the relay server which you have connected to is not "
-"compatible with this version of the Remote Client.\n"
-"Please either use a different server or upgrade your version of the addon."
+"You have installed an old version of NVDA Remote, which is incompatible with "
+"the UnicornDVC add-on. Do you want to uninstall it? If you need the "
+"functionality found in NVDA Remote, you are advised to get it from the NVDA "
+"add-ons website."
 msgstr ""
-"De versie van de relaisserver waarmee u verbonden bent, is niet compatibel "
-"met deze versie van de externe toegang client.\n"
-"Gebruik een andere server of update uw versie van de add-on."
+"Je hebt een oude versie van NVDA Remote geïnstalleerd die niet compatibel is "
+"met de UnicornDVC add-on. Wil je deze verwijderen? Wanneer je de "
+"functionaliteit van NVDA Remote nodig hebt, wordt geadviseerd om NVDA Remote "
+"te downloaden vanaf de NVDA add-onswebsite"
 
-msgid "Message of the Day"
-msgstr "Bericht van de dag"
-
-msgid "Remote NVDA not connected."
-msgstr "Externe NVDA niet verbonden."
-
-msgid "Invalid URL"
-msgstr "Ongeldige URL"
-
-#. Translators: Message shown when an invalid URL has been provided.
-#, python-format
-msgid "Unable to parse url \"%s\""
-msgstr "Kan url \"%s\" niet interpreteren"
+#. Translators: the title of a message box dialog.
+#: addon\installTasks.py:20
+msgid "Uninstall incompatible add-on"
+msgstr "Incompatibele add-on verwijderen"
 
 #. Add-on summary, usually the user visible name of the addon.
 #. Translators: Summary for this add-on to be shown on installation and add-on information.
-msgid "Remote Support"
-msgstr "Externe ondersteuning"
+#: buildVars.py:17
+msgid "UnicornDVC integration for NVDA"
+msgstr "UnicornDVC integratie voor NVDA"
 
 #. Add-on description
 #. Translators: Long description to be shown for this add-on on add-on information from add-ons manager
-msgid "Allows remote control of and remote access to another machine."
+#: buildVars.py:20
+msgid ""
+"Allows sending speech and braille over RDP, Citrix and VMWare Horizon "
+"virtual channels using Access4U UnicornDVC."
 msgstr ""
-"Faciliteert beheer op afstand van en externe toegang tot een andere machine."
+"Maakt verzenden van spraak en braille mogelijk over RDP, Citrix en VMWare "
+"Horizon virtuele kanalen met behulp van Access4U UnicornDVC."
+
+#~ msgid "Connect..."
+#~ msgstr "Verbinden..."
+
+#~ msgid "Remotely connect to another computer running NVDA Remote Access"
+#~ msgstr ""
+#~ "Verbinding maken met een andere computer op afstand waarop NVDA Externe "
+#~ "Toegang gebruikt wordt"
+
+#~ msgid "Disconnect"
+#~ msgstr "Verbinding ver&breken"
+
+#~ msgid "Disconnect from another computer running NVDA Remote Access"
+#~ msgstr ""
+#~ "De verbinding verbreken met een andere computer op afstand waarop NVDA "
+#~ "Externe Toegang gebruikt wordt"
+
+#~ msgid "Connect second session..."
+#~ msgstr "Tweede sessie verbinden..."
+
+#~ msgid "Connect to a second computer running NVDA Remote Access"
+#~ msgstr ""
+#~ "Verbindt met een tweede computer waarop NVDA externe toegang actief is"
+
+#~ msgid "Disconnect second session"
+#~ msgstr "Verbinding met tweede sessie verbreken"
+
+#~ msgid "Disconnect from a second computer running NVDA Remote Access"
+#~ msgstr ""
+#~ "Verbreek de verbinding met een tweede computer waarop NVDA externe "
+#~ "toegang actief is"
+
+#~ msgid "&Push clipboard"
+#~ msgstr "&Klembord doorsturen"
+
+#~ msgid "Push the clipboard to the other machine"
+#~ msgstr "Stuurt de inhoud van het klembord door naar de andere machine"
+
+#~ msgid "Copy &link"
+#~ msgstr "&Link kopiëren"
+
+#~ msgid "Copy a link to the remote session"
+#~ msgstr "Kopieer een link naar de externe sessie"
+
+#~ msgid "&Options..."
+#~ msgstr "&Opties..."
+
+#~ msgid "Options"
+#~ msgstr "Opties"
+
+#~ msgid "Send Ctrl+Alt+Del"
+#~ msgstr "&Ctrl+Alt+Del sturen"
+
+#~ msgid "Manage Unicorn License..."
+#~ msgstr "Unicorn licentie beheren..."
+
+#~ msgid "Activate or deactivate UnicornDVC"
+#~ msgstr "UnicornDVC activeren of deactiveren"
+
+#~ msgid "R&emote"
+#~ msgstr "&Externe toegang"
+
+#~ msgid "NVDA Remote Access"
+#~ msgstr "NVDA Externe Toegang"
+
+#~ msgid "Not connected."
+#~ msgstr "niet verbonden."
+
+#~ msgid "Clipboard pushed"
+#~ msgstr "Klembord doorgestuurd"
+
+#~ msgid "Unable to push clipboard"
+#~ msgstr "Klembord doorgsturen niet mogelijk"
+
+#~ msgid "Sends the contents of the clipboard to the remote machine"
+#~ msgstr "Verstuurt de inhoud van het klembord naar de externe machine"
+
+#~ msgid "Copied link"
+#~ msgstr "Link gekopiëerd"
+
+#~ msgid "Copies a link to the remote session to the clipboard"
+#~ msgstr "Kopieert een link naar de externe sessie naar het klembord"
+
+#~ msgid "Manage UnicornDVC License"
+#~ msgstr "UnicornDVC licentie beheren"
+
+#~ msgid "Unable to connect to the remote computer"
+#~ msgstr "Kan geen verbinding maken met externe computer"
+
+#~ msgid "Disconnect a remote session"
+#~ msgstr "Verbinding met externe sessie verbreken"
+
+#~ msgid "Connect"
+#~ msgstr "Verbinden"
+
+#~ msgid "Connect Second Session"
+#~ msgstr "Tweede sessie verbinden"
+
+#~ msgid "Connected!"
+#~ msgstr "Verbonden"
+
+#~ msgid "Connection interrupted"
+#~ msgstr "Verbinding onderbroken"
+
+#~ msgid ""
+#~ "The option to handle keys from other applications is disabled in your "
+#~ "NVDA keyboard settings. In order to allow the keyboard of this machine to "
+#~ "be controlled, this option should be enabled. Would you like to do this "
+#~ "now?"
+#~ msgstr ""
+#~ "De optie om toetsen van andere toepassingen te verwerken is uitgeschakeld "
+#~ "in de NVDA toetsenbordinstellingen. Om het toetsenbord van deze machine "
+#~ "beheerd te laten worden, dient deze optie ingeschakeld te zijn. Wilt u "
+#~ "dit nu doen?"
+
+#~ msgid "Warning"
+#~ msgstr "Waarschuwing"
+
+#~ msgid "Connected to control server"
+#~ msgstr "Verbonden met beheerserver"
+
+#~ msgid "Secondary session connected"
+#~ msgstr "Tweede sessie verbonden"
+
+#~ msgid "Controlling local machine."
+#~ msgstr "Lokale machine wordt beheert"
+
+#~ msgid "Controlling remote machine."
+#~ msgstr "Externe machine wordt beheert"
+
+#~ msgid ""
+#~ "NVDA Remote is already connected. Disconnect before opening a new "
+#~ "connection."
+#~ msgstr ""
+#~ "NVDA externe toegang is reeds verbonden. Verbreek de verbinding alvorens "
+#~ "een nieuwe verbinding te openen."
+
+#~ msgid "NVDA Remote Already Connected"
+#~ msgstr "NVDA externe toegang reeds verbonden"
+
+#~ msgid ""
+#~ "Do you wish to control the machine on server {server} with key {key}?"
+#~ msgstr "Wilt u de machine op server {server} met sleutel {key} beheren?"
+
+#~ msgid ""
+#~ "Do you wish to allow this machine to be controlled on server {server} "
+#~ "with key {key}?"
+#~ msgstr ""
+#~ "Wilt u het beheren van deze machine toestaan op server {server} met "
+#~ "sleutel {key}?"
+
+#~ msgid "NVDA Remote Connection Request"
+#~ msgstr "NVDA externe toegang verbindingsverzoek"
+
+#~ msgid "&Host:"
+#~ msgstr "&Adres:"
+
+#~ msgid "&Key:"
+#~ msgstr "&Sleutel:"
+
+#~ msgid "&Generate Key"
+#~ msgstr "Sleutel &genereren"
+
+#~ msgid "Get External &IP"
+#~ msgstr "Extern &IP opvragen"
+
+#~ msgid "&External IP:"
+#~ msgstr "&Extern IP:"
+
+#~ msgid "&Port:"
+#~ msgstr "&Poort:"
+
+#~ msgid "Successfully retrieved IP address. Port {port} is open."
+#~ msgstr "IP-adres succesvol verkregen. Poort {port} is open."
+
+#~ msgid "Success"
+#~ msgstr "Succes"
+
+#~ msgid "Retrieved external IP, but port {port} is not currently forwarded."
+#~ msgstr "IP-adres succesvol verkregen, maar poort {port} is niet geopend."
+
+#~ msgid ""
+#~ "Unable to contact portcheck server, please manually retrieve your IP "
+#~ "address"
+#~ msgstr ""
+#~ "Kan geen verbinding maken met de portcheck server, vraag uw ip-adres "
+#~ "handmatig op"
+
+#~ msgid "TCP Client"
+#~ msgstr "TCP Client"
+
+#~ msgid "TCP Server"
+#~ msgstr "TCP Server"
+
+#~ msgid "Virtual channel (RDP/ICA/PCoIP)"
+#~ msgstr "Virtueel kanaal (RDP/ICA/PCoIP)"
+
+#~ msgid "Control another machine"
+#~ msgstr "Beheer een andere machine"
+
+#~ msgid "Allow this machine to be controlled"
+#~ msgstr "Laat deze machine beheerd worden"
+
+#~ msgid "Both host and key must be set."
+#~ msgstr "Zowel adres als sleutel moeten worden ingevoerd."
+
+#~ msgid "Both port and key must be set."
+#~ msgstr "Zowel poort als sleutel moeten worden ingevoerd."
+
+#~ msgid "Auto-connect on startup"
+#~ msgstr "Automatisch verbinden bij opstarten"
+
+#~ msgid "Use Remote Control Server"
+#~ msgstr "Gebruik externe beheerserver"
+
+#~ msgid "Host Control Server"
+#~ msgstr "Beheerserver hosten"
+
+#~ msgid "Use a virtual channel"
+#~ msgstr "Gebruik een virtueel kanaal"
+
+#~ msgid ""
+#~ "The version of the relay server which you have connected to is not "
+#~ "compatible with this version of the Remote Client.\n"
+#~ "Please either use a different server or upgrade your version of the addon."
+#~ msgstr ""
+#~ "De versie van de relaisserver waarmee u verbonden bent, is niet "
+#~ "compatibel met deze versie van de externe toegang client.\n"
+#~ "Gebruik een andere server of update uw versie van de add-on."
+
+#~ msgid "Message of the Day"
+#~ msgstr "Bericht van de dag"
+
+#~ msgid "Remote NVDA not connected."
+#~ msgstr "Externe NVDA niet verbonden."
+
+#~ msgid "Invalid URL"
+#~ msgstr "Ongeldige URL"
+
+#~ msgid "Unable to parse url \"%s\""
+#~ msgstr "Kan url \"%s\" niet interpreteren"
+
+#~ msgid "Remote Support"
+#~ msgstr "Externe ondersteuning"
+
+#~ msgid "Allows remote control of and remote access to another machine."
+#~ msgstr ""
+#~ "Faciliteert beheer op afstand van en externe toegang tot een andere "
+#~ "machine."
 
 #~ msgid ""
 #~ "Your copy of UnicornDVC doesn't seem to be licensed.\n"
