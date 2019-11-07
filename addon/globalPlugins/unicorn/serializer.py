@@ -19,7 +19,6 @@ class JSONSerializer:
 SEQUENCE_CLASSES = (
 	speech.commands.SynthCommand,
 	speech.commands.EndUtteranceCommand,
-	speech.commands.BeepCommand,
 )
 
 class CustomEncoder(json.JSONEncoder):
@@ -49,7 +48,7 @@ def as_sequence(dct):
 			continue
 		cls = getattr(speech, name)
 		if not issubclass(cls, SEQUENCE_CLASSES):
-			log.warning("Unknown sequence type received: %r" % name)
+			log.warning(f"Unknown sequence type received: {name!r}")
 			continue
 		cls = cls.__new__(cls)
 		cls.__dict__.update(values)
