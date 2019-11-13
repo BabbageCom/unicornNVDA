@@ -219,17 +219,17 @@ class GlobalPlugin(GlobalPlugin):
 		self.mute_item.Enable(True)
 		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
 		self.evaluate_remote_shell()
-		ui.message(_("Connected in client mode!"), speechPriority=speech.priorities.SPRI_NOW)
+		ui.message(_("Connected in client mode!"), speechPriority=speech.priorities.Spri.NOW)
 		beep_sequence.beep_sequence_async((440, 60), (660, 60))
 
 	def on_disconnected_as_master(self):
 		# Translators: Presented when connection to a remote computer was interupted.
-		ui.message(_("Connection as client interrupted"), speechPriority=speech.priorities.SPRI_NOW)
+		ui.message(_("Connection as client interrupted"), speechPriority=speech.priorities.Spri.NOW)
 
 	def on_connected_as_slave(self):
 		log.info("Connected DVC in server mode")
 		self.callback_manager.call_callbacks('transport_connect', connection_type='slave', transport=self.slave_transport)
-		ui.message(_("Connected in server mode!"), speechPriority=speech.priorities.SPRI_NOW)
+		ui.message(_("Connected in server mode!"), speechPriority=speech.priorities.Spri.NOW)
 
 	def evaluate_remote_shell(self):
 		focus = api.getFocusObject()

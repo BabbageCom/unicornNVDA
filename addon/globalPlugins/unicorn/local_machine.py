@@ -32,7 +32,7 @@ class LocalMachine:
 			return
 		wx.CallAfter(speech._manager.cancel)
 
-	def speak(self, sequence, priority=speech.priorities.SPRI_NORMAL, **kwargs):
+	def speak(self, sequence, priority=speech.priorities.Spri.NORMAL, **kwargs):
 		if self.is_muted:
 			return
 		speech.beenCanceled = False
