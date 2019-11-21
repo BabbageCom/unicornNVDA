@@ -45,7 +45,7 @@ def skipEventAndCall(handler):
 
 
 class GlobalPlugin(GlobalPlugin):
-	scriptCategory = UnicornDVC"
+	scriptCategory = "UnicornDVC"
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
