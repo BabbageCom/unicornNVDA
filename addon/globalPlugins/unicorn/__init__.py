@@ -49,9 +49,18 @@ class GlobalPlugin(GlobalPlugin):
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
+		if not unicorn.unicorn_lib_path():
+			if not globalVars.appArgs.secure:
+				wx.CallAfter(
+					gui.messageBox,
+					parent=gui.mainFrame,
+					caption= _("Error"),
+					message=_("UnicornDVC isn't available on your system."),
+					style=wx.OK | wx.ICON_ERROR
+				)
+			raise RuntimeError("UnicornDVC not found")
 		self.initializeConfig()
-		if unicorn.unicorn_lib_path():
-			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(dialogs.UnicornPanel)
+		gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(dialogs.UnicornPanel)
 		self.local_machine = local_machine.LocalMachine()
 		self.callback_manager = callback_manager.CallbackManager()
 		self.slave_session = None
@@ -76,7 +85,7 @@ class GlobalPlugin(GlobalPlugin):
 		conf['unicorn'].spec.update(configSpec)
 
 	def perform_autoconnect(self):
-		if conf['unicorn']['autoConnectClient']:
+		if conf['unicorn']['autoConnectClient'] and unicorn.unicorn_client():
 			self.connect_master()
 		if conf['unicorn']['autoConnectServer']:
 			self.connect_slave()
@@ -84,6 +93,7 @@ class GlobalPlugin(GlobalPlugin):
 	def create_menu(self):
 		self.menu = wx.Menu()
 		self.connect_master_item = self.menu.Append(wx.ID_ANY, _("Connect client"))
+		self.connect_master_item.Enable(unicorn.unicorn_client())
 		gui.mainFrame.sysTrayIcon.Bind(wx.EVT_MENU, skipEventAndCall(self.connect_master), self.connect_master_item)
 		self.disconnect_master_item = self.menu.Append(wx.ID_ANY, _("Disconnect client"))
 		self.disconnect_master_item.Enable(False)
