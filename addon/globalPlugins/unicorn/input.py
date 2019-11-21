@@ -3,6 +3,8 @@ import brailleInput
 import api
 import baseObject
 import vision
+import scriptHandler
+
 
 class BrailleInputGesture(braille.BrailleDisplayGesture, brailleInput.BrailleInputGesture):
 
