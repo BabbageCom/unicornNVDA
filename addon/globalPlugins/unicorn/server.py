@@ -93,7 +93,7 @@ class Client:
 	def handle_data(self):
 		sock_data = ''
 		try:
-			sock_data = self.socket.recv(16384)
+			sock_data = self.socket.recv(16384).decode(errors="surrogatepass")
 		except:
 			self.close()
 			return
@@ -167,7 +167,7 @@ class Client:
 				msg['client'] = client
 		msgstr = json.dumps(msg)+"\n"
 		try:
-			self.socket.sendall(msgstr)
+			self.socket.sendall(msgstr.encode(errors="surrogatepass")
 		except:
 			self.close()
 

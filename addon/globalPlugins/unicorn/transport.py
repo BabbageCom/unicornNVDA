@@ -111,7 +111,7 @@ class TCPTransport(Transport):
 			if item is None:
 				return
 			try:
-				self.server_sock.sendall(item)
+				self.server_sock.sendall(item.encode()errors="surrogatepass")
 			except OSError:
 				return
 
