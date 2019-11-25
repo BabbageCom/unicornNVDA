@@ -84,7 +84,7 @@ class TCPTransport(Transport):
 		return server_sock
 
 	def handle_server_data(self):
-		data = self.buffer + self.server_sock.recv(16384)
+		data = self.buffer + self.server_sock.recv(16384).decode(errors="surrogatepass")
 		self.buffer = ""
 		if data == '':
 			self._disconnect()
@@ -111,7 +111,7 @@ class TCPTransport(Transport):
 			if item is None:
 				return
 			try:
-				self.server_sock.sendall(item.encode()errors="surrogatepass")
+				self.server_sock.sendall(item.encode(errors="surrogatepass"))
 			except OSError:
 				return
 

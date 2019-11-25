@@ -167,7 +167,7 @@ class Client:
 				msg['client'] = client
 		msgstr = json.dumps(msg)+"\n"
 		try:
-			self.socket.sendall(msgstr.encode(errors="surrogatepass")
+			self.socket.sendall(msgstr.encode(errors="surrogatepass"))
 		except:
 			self.close()
 
