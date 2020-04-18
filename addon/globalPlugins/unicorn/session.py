@@ -7,8 +7,11 @@ from collections import defaultdict
 import tones
 import synthDriverHandler
 
+EXCLUDED_SPEECH_COMMANDS = (
+	speech.commands.BaseCallbackCommand,
+)
 
-class RemoteSession(object):
+class RemoteSession:
 
 	def __init__(self, local_machine, transport):
 		self.local_machine = local_machine
@@ -76,32 +79,38 @@ class SlaveSession(RemoteSession):
 		self.masters[origin]['braille_numCells'] = numCells
 		self.set_display_size()
 
-	def add_patch_callbacks(self):
-		patcher_callbacks = (
+	def _get_patcher_callbacks(self):
+		return (
 			('speak', self.speak),
-			('cancel_speech', self.cancel_speech),
 			('beep', self.beep),
 			('wave', self.playWaveFile),
+			('cancel_speech', self.cancel_speech),
 			('display', self.display),
 			('set_display', self.set_display_size)
 		)
+
+	def add_patch_callbacks(self):
+		patcher_callbacks = self._get_patcher_callbacks()
 		for event, callback in patcher_callbacks:
 			self.patcher.register_callback(event, callback)
 
 	def remove_patch_callbacks(self):
-		patcher_callbacks = (
-			('speak', self.speak),
-			('cancel_speech', self.cancel_speech),
-			('beep', self.beep),
-			('wave', self.playWaveFile),
-			('display', self.display),
-			('set_display', self.set_display_size)
-		)
+		patcher_callbacks = self._get_patcher_callbacks()
 		for event, callback in patcher_callbacks:
 			self.patcher.unregister_callback(event, callback)
 
+	def _filterUnsupportedSpeechCommands(self, speechSequence):
+		return list([
+			item for item in speechSequence
+			if not isinstance(item, EXCLUDED_SPEECH_COMMANDS)
+		])
+
 	def speak(self, speechSequence, priority):
-		self.transport.send(type="speak", sequence=speechSequence, priority=priority)
+		self.transport.send(
+			type="speak",
+			sequence=self._filterUnsupportedSpeechCommands(speechSequence),
+			priority=priority
+		)
 
 	def cancel_speech(self):
 		self.transport.send(type="cancel")
