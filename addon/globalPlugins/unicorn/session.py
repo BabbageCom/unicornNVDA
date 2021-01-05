@@ -6,7 +6,11 @@ from . import nvda_patcher
 from collections import defaultdict
 import tones
 import synthDriverHandler
+from logHandler import log
 
+EXCLUDED_SPEECH_COMMANDS = (
+	speech.commands.BaseCallbackCommand,
+)
 
 class RemoteSession(object):
 
@@ -100,8 +104,28 @@ class SlaveSession(RemoteSession):
 		for event, callback in patcher_callbacks:
 			self.patcher.unregister_callback(event, callback)
 
+	def _filterUnsupportedSpeechCommands(self, speechSequence):
+		return list([
+			item for item in speechSequence
+			if not isinstance(item, EXCLUDED_SPEECH_COMMANDS)
+			#else: 
+			#	"Babbage tries its best"
+		])
+		
+		#retList = speechSequence
+		#for item in retList:
+		#	if (isinstance(item, EXCLUDED_SPEECH_COMMANDS)):
+		#		retList[retList.index(item)] = ""
+		#log.warning("*** %r" % retList)		
+		#return retList		
+
 	def speak(self, speechSequence, priority):
-		self.transport.send(type="speak", sequence=speechSequence, priority=priority)
+		#self.transport.send(type="speak", sequence=speechSequence, priority=priority)
+		self.transport.send(
+			type="speak",
+			sequence=self._filterUnsupportedSpeechCommands(speechSequence),
+			priority=priority
+		)
 
 	def cancel_speech(self):
 		self.transport.send(type="cancel")
