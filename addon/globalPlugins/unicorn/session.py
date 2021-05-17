@@ -6,6 +6,7 @@ from . import nvda_patcher
 from collections import defaultdict
 import tones
 import synthDriverHandler
+from logHandler import log
 
 EXCLUDED_SPEECH_COMMANDS = (
 	speech.commands.BaseCallbackCommand,

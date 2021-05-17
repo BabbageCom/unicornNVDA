@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import speech.commands
+from logHandler import log
 
 class JSONSerializer:
 	SEP = '\n'
@@ -25,7 +26,13 @@ class CustomEncoder(json.JSONEncoder):
 
 	def default(self, obj):
 		if is_subclass_or_instance(obj, SEQUENCE_CLASSES):
+			log.warning("SEQUENCE_CLASS found to serialize")
+			log.warning("Name: %r" % obj.__class__.__name__)
+			log.warning("Dict: %r" % obj.__class__.__dict__)
+			if (obj.__class__.__name__ == "CallbackCommand"):
+				log.warning("Callbackcommand found!")
 			return [obj.__class__.__name__, obj.__dict__]
+		log.warning("*** %r" % obj)	
 		return super().default(obj)
 
 def is_subclass_or_instance(unknown, possible):
