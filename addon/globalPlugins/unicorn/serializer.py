@@ -53,7 +53,7 @@ def as_sequence(dct):
 		if not hasattr(speech.commands, name):
 			log.warning("Unknown sequence type received: %r" % name)
 			continue
-		cls = getattr(speech, name)
+		cls = getattr(speech.commands, name)
 		if not issubclass(cls, SEQUENCE_CLASSES):
 			log.warning(f"Unknown sequence type received: {name!r}")
 			continue
