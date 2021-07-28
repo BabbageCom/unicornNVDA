@@ -75,7 +75,7 @@ class UnicornLicenseDialog(wx.Dialog):
 		main_sizer.Add(main_sizer_helper.sizer, border=gui.guiHelper.BORDER_FOR_DIALOGS, flag=wx.ALL)
 		main_sizer.Fit(self)
 		self.SetSizer(main_sizer)
-		self.Center(wx.BOTH | wx.CENTER_ON_SCREEN)
+		self.Center(wx.BOTH )
 		self.Show()
 		self.key.SetFocus()
 
