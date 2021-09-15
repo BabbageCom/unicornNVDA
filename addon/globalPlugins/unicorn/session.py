@@ -10,6 +10,7 @@ from logHandler import log
 
 EXCLUDED_SPEECH_COMMANDS = (
 	speech.commands.BaseCallbackCommand,
+	speech.commands._CancellableSpeechCommand,
 )
 
 class RemoteSession(object):
