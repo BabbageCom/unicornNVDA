@@ -28,6 +28,7 @@ import ssl
 from . import callback_manager
 from . import unicorn
 import json
+import addonAPIVersion
 addonHandler.initTranslation()
 
 REMOTE_SHELL_CLASSES = {
@@ -71,7 +72,11 @@ class GlobalPlugin(GlobalPlugin):
 		self.sd_server = None
 		self.sd_relay = None
 		self.sd_bridge = None
-		self.temp_location = os.path.join(shlobj.SHGetFolderPath(0, shlobj.CSIDL_COMMON_APPDATA), 'temp')
+		if addonAPIVersion.CURRENT < (2022, 1, 0):
+			commonAppData = shlobj.SHGetFolderPath(0, shlobj.CSIDL_COMMON_APPDATA)
+		else:
+			commonAppData = shlobj.SHGetKnownFolderPath(shlobj.FolderId.PROGRAM_DATA)
+		self.temp_location = os.path.join(commonAppData, 'temp')
 		self.ipc_file = os.path.join(self.temp_location, 'unicorn.ipc')
 		if globalVars.appArgs.secure:
 			self.handle_secure_desktop()
