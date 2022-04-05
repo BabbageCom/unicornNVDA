@@ -40,10 +40,10 @@ class SlaveSession(RemoteSession):
 		self.transport.callback_manager.register_callback('msg_callbackCommandBounce', self.callbackCommandBounce)
 
 	def callbackCommandBounce(self, compName, index, **kwargs ):
-		log.info(f"{index} {type(index)}")
+		# function that is used for the speech callbackCommands. It checks if the callbackcommand originated from this
+		# computer and then searches for the saved function in the database
 		if compName == callbackCommandsDatabase.compName:
 			function = callbackCommandsDatabase.callBackDatabase.get(index)
-
 			if function:
 				function()
 				del callbackCommandsDatabase.callBackDatabase[index]

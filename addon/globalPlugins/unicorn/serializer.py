@@ -30,12 +30,12 @@ class CustomEncoder(json.JSONEncoder):
 	def default(self, obj):
 		if is_subclass_or_instance(obj, SEQUENCE_CLASSES):
 
+			# special case for callback command
 			if is_subclass_or_instance(obj, (speech.commands.CallbackCommand,)):
 				callbackFunction = obj._callback
 				callbackCommandsDatabase.ii += 1
-
+				# save to be called function on remote session
 				callbackCommandsDatabase.callBackDatabase[callbackCommandsDatabase.ii] = callbackFunction
-
 				callbackDict = {"compName": callbackCommandsDatabase.compName, "index": callbackCommandsDatabase.ii}
 				return ['callbackCommandBounce', callbackDict]
 
@@ -73,6 +73,7 @@ def as_sequence(dct):
 			continue
 		name, values = item
 
+		# deserialize callback command that directly bounces back the callback to the remote server that should call it
 		if name == 'callbackCommandBounce':
 			inst = makeCallBackCommandWrapper(compName=values['compName'], index=values['index'])
 			sequence.append(inst)
