@@ -124,7 +124,7 @@ class NVDASlavePatcher(NVDAPatcher):
 
 	def speak(self, speechSequence, priority):
 		self.call_callbacks('speak', speechSequence=speechSequence, priority=priority)
-		self.orig_speak(speechSequence, priority)
+		#self.orig_speak(speechSequence, priority)
 
 	def cancel(self):
 		self.call_callbacks('cancel_speech')

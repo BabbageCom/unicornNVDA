@@ -3,6 +3,7 @@ import os
 import json
 import speech.commands
 from logHandler import log
+from . import callbackCommandsDatabase
 
 class JSONSerializer:
 	SEP = '\n'
@@ -20,19 +21,27 @@ class JSONSerializer:
 SEQUENCE_CLASSES = (
 	speech.commands.SynthCommand,
 	speech.commands.EndUtteranceCommand,
+	speech.commands.CallbackCommand
 )
+
 
 class CustomEncoder(json.JSONEncoder):
 
 	def default(self, obj):
 		if is_subclass_or_instance(obj, SEQUENCE_CLASSES):
-			#log.warning("SEQUENCE_CLASS found to serialize")
-			#log.warning("Name: %r" % obj.__class__.__name__)
-			#log.warning("Dict: %r" % obj.__class__.__dict__)
-			#if (obj.__class__.__name__ == "CallbackCommand"):
-			#	log.warning("Callbackcommand found!")
-			return [obj.__class__.__name__, obj.__dict__]
-		#log.warning("*** %r" % obj)	
+
+			if is_subclass_or_instance(obj, (speech.commands.CallbackCommand,)):
+				callbackFunction = obj._callback
+				callbackCommandsDatabase.ii += 1
+
+				callbackCommandsDatabase.callBackDatabase[callbackCommandsDatabase.ii] = callbackFunction
+
+				callbackDict = {"compName": callbackCommandsDatabase.compName, "index": callbackCommandsDatabase.ii}
+				return ['callbackCommandBounce', callbackDict]
+
+			else:
+				return [obj.__class__.__name__, obj.__dict__]
+
 		return super().default(obj)
 
 def is_subclass_or_instance(unknown, possible):
@@ -40,6 +49,19 @@ def is_subclass_or_instance(unknown, possible):
 		return issubclass(unknown, possible)
 	except TypeError:
 		return isinstance(unknown, possible)
+
+
+def makeCallBackCommandWrapper(compName, index):
+	import globalPluginHandler
+
+	plugin = next((p for p in globalPluginHandler.runningPlugins if p.__module__ == 'globalPlugins.usa'), None)
+	remoteHandler = plugin.remoteHandler if plugin else None
+
+	def _callBackWrapper(computerName = compName, ii = index):
+		return remoteHandler.transport.send(type="callbackCommandBounce", compName = computerName, index = ii)
+
+	return speech.commands.CallbackCommand(_callBackWrapper)
+
 
 def as_sequence(dct):
 	if not ('type' in dct and dct['type'] == 'speak' and 'sequence' in dct):
@@ -50,6 +72,12 @@ def as_sequence(dct):
 			sequence.append(item)
 			continue
 		name, values = item
+
+		if name == 'callbackCommandBounce':
+			inst = makeCallBackCommandWrapper(compName=values['compName'], index=values['index'])
+			sequence.append(inst)
+			continue
+
 		if not hasattr(speech.commands, name):
 			log.warning("Unknown sequence type received: %r" % name)
 			continue

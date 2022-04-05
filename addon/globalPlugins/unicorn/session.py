@@ -2,15 +2,14 @@ import threading
 import time
 import speech
 import braille
-from . import nvda_patcher
+from . import nvda_patcher, callbackCommandsDatabase
 from collections import defaultdict
 import tones
 import synthDriverHandler
 from logHandler import log
+import os
 
-EXCLUDED_SPEECH_COMMANDS = (
-	speech.commands.BaseCallbackCommand,
-)
+EXCLUDED_SPEECH_COMMANDS = ( speech.commands._CancellableSpeechCommand,)
 
 class RemoteSession(object):
 
@@ -18,6 +17,7 @@ class RemoteSession(object):
 		self.local_machine = local_machine
 		self.patcher = None
 		self.transport = transport
+
 
 
 class SlaveSession(RemoteSession):
@@ -37,6 +37,16 @@ class SlaveSession(RemoteSession):
 		self.transport.callback_manager.register_callback('msg_set_braille_info', self.handle_braille_info)
 		self.transport.callback_manager.register_callback('msg_set_display_size', self.set_display_size)
 		self.transport.callback_manager.register_callback('msg_braille_input', self.local_machine.braille_input)
+		self.transport.callback_manager.register_callback('msg_callbackCommandBounce', self.callbackCommandBounce)
+
+	def callbackCommandBounce(self, compName, index, **kwargs ):
+		log.info(f"{index} {type(index)}")
+		if compName == callbackCommandsDatabase.compName:
+			function = callbackCommandsDatabase.callBackDatabase.get(index)
+
+			if function:
+				function()
+				del callbackCommandsDatabase.callBackDatabase[index]
 
 	def handle_client_connected(self, client=None, **kwargs):
 		self.patcher.patch()
@@ -108,16 +118,7 @@ class SlaveSession(RemoteSession):
 		return list([
 			item for item in speechSequence
 			if not isinstance(item, EXCLUDED_SPEECH_COMMANDS)
-			#else: 
-			#	"Babbage tries its best"
 		])
-		
-		#retList = speechSequence
-		#for item in retList:
-		#	if (isinstance(item, EXCLUDED_SPEECH_COMMANDS)):
-		#		retList[retList.index(item)] = ""
-		#log.warning("*** %r" % retList)		
-		#return retList		
 
 	def speak(self, speechSequence, priority):
 		#self.transport.send(type="speak", sequence=speechSequence, priority=priority)
@@ -160,6 +161,9 @@ class MasterSession(RemoteSession):
 		self.transport.callback_manager.register_callback('msg_client_left', self.handle_client_disconnected)
 		self.transport.callback_manager.register_callback('msg_channel_joined', self.handle_channel_joined)
 		self.transport.callback_manager.register_callback('msg_send_braille_info', self.send_braille_info)
+
+
+
 
 	def handle_channel_joined(self, channel=None, clients=None, origin=None, **kwargs):
 		if clients is None:
