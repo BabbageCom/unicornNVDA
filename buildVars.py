@@ -19,7 +19,7 @@ addon_info = {
 	# Translators: Long description to be shown for this add-on on add-on information from add-ons manager
 	"addon_description" : _("Allows sending speech and braille over RDP, Citrix and VMWare Horizon virtual channels using Access4U UnicornDVC."),
 	# version
-	"addon_version" : "4.21.3",
+	"addon_version" : "4.21.4",
 	# Author(s)
 	"addon_author" : "Babbage B.V. <info@babbage.com>, NVDA Remote contributors",
 	# URL for the add-on documentation support
