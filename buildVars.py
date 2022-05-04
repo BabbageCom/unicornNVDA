@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 # Build customizations
-# Change this file instead of sconstruct or manifest files, whenever possible.
+# Change this file instead of nnonstruct or manifest files, whenever possible.
 
 # Full getext (please don't change)
 _ = lambda x : x
@@ -30,7 +30,6 @@ addon_info = {
 	"addon_minimumNVDAVersion" : "2019.3",
 	# Last NVDA version supported/tested (e.g. "2018.4.0", ideally more recent than minimum version)
 	"addon_lastTestedNVDAVersion" : "2021.2",
-
 }
 
 
