@@ -135,6 +135,9 @@ class SlaveSession(RemoteSession):
 		self.transport.send(type='tone', hz=hz, length=length, left=left, right=right)
 
 	def playWaveFile(self, fileName, asynchronous=True):
+		# 20220428 remove absolute path
+		parts = fileName.rpartition('waves\\')
+		fileName = parts[1]+parts[2]
 		self.transport.send(type='wave', fileName=fileName, asynchronous=asynchronous)
 
 	def display(self, cells):
