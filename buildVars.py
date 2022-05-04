@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 # Build customizations
-# Change this file instead of sconstruct or manifest files, whenever possible.
+# Change this file instead of nnonstruct or manifest files, whenever possible.
 
 # Full getext (please don't change)
 _ = lambda x : x
@@ -19,7 +19,7 @@ addon_info = {
 	# Translators: Long description to be shown for this add-on on add-on information from add-ons manager
 	"addon_description" : _("Allows sending speech and braille over RDP, Citrix and VMWare Horizon virtual channels using Access4U UnicornDVC."),
 	# version
-	"addon_version" : "4.21.3",
+	"addon_version" : "4.21.4",
 	# Author(s)
 	"addon_author" : "Babbage B.V. <info@babbage.com>, NVDA Remote contributors",
 	# URL for the add-on documentation support
@@ -30,7 +30,6 @@ addon_info = {
 	"addon_minimumNVDAVersion" : "2019.3",
 	# Last NVDA version supported/tested (e.g. "2018.4.0", ideally more recent than minimum version)
 	"addon_lastTestedNVDAVersion" : "2022.1",
-
 }
 
 
