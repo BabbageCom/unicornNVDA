@@ -7,6 +7,9 @@
 _ = lambda x : x
 
 # Add-on information variables
+
+
+
 addon_info = {
 	# for previously unpublished addons, please follow the community guidelines at:
 	# https://bitbucket.org/nvdaaddonteam/todo/raw/master/guideLines.txt
@@ -32,6 +35,11 @@ addon_info = {
 	"addon_lastTestedNVDAVersion" : "2022.1",
 }
 
+isbeta = True
+if isbeta:
+	addon_info["addon_name"] += "_BETA"
+	addon_info["addon_summary"] += "(Beta version)"
+	addon_info["addon_description"] = "Beta version of " + addon_info["addon_description"]
 
 import os.path
 
