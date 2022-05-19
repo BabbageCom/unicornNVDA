@@ -13,8 +13,11 @@ class JSONSerializer:
 		data = json.dumps(obj, cls=CustomEncoder) + self.SEP
 		return data
 
-	def deserialize(self, data):
-		obj = json.loads(data, object_hook=as_sequence)
+	def deserialize(self, data, transporter = None):
+		# complicated lambda because of the callbackCommandbounce. It needs the transporter itself to send back the command
+		def as_sequenceWithTransporter(dct, transporter = transporter):
+			return as_sequence(dct, transporter = transporter)
+		obj = json.loads(data, object_hook=as_sequenceWithTransporter)
 		return obj
 
 
@@ -51,19 +54,15 @@ def is_subclass_or_instance(unknown, possible):
 		return isinstance(unknown, possible)
 
 
-def makeCallBackCommandWrapper(compName, index):
-	import globalPluginHandler
-
-	plugin = next((p for p in globalPluginHandler.runningPlugins if p.__module__ == 'globalPlugins.usa'), None)
-	remoteHandler = plugin.remoteHandler if plugin else None
-
+def makeCallBackCommandWrapper(transporter, compName, index):
+	# the transporter is the
 	def _callBackWrapper(computerName = compName, ii = index):
-		return remoteHandler.transport.send(type="callbackCommandBounce", compName = computerName, index = ii)
+		return transporter.send(type="callbackCommandBounce", compName = computerName, index = ii)
 
 	return speech.commands.CallbackCommand(_callBackWrapper)
 
 
-def as_sequence(dct):
+def as_sequence(dct, transporter = None):
 	if not ('type' in dct and dct['type'] == 'speak' and 'sequence' in dct):
 		return dct
 	sequence = []
@@ -75,7 +74,10 @@ def as_sequence(dct):
 
 		# deserialize callback command that directly bounces back the callback to the remote server that should call it
 		if name == 'callbackCommandBounce':
-			inst = makeCallBackCommandWrapper(compName=values['compName'], index=values['index'])
+			if not transporter:
+				log.debugWarning("got callbackCommandBounce but does not have the transporter")
+				continue
+			inst = makeCallBackCommandWrapper(transporter, compName=values['compName'], index=values['index'])
 			sequence.append(inst)
 			continue
 

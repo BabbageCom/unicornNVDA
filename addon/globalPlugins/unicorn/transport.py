@@ -98,7 +98,9 @@ class TCPTransport(Transport):
 		self.buffer += data
 
 	def parse(self, line):
-		obj = self.serializer.deserialize(line)
+		# deserialize object needs the transporter for callback commands. If there is a sequence with a callback command
+		# it should be able to directly call the send method of the transporter.
+		obj = self.serializer.deserialize(line, self)
 		if 'type' not in obj:
 			return
 		callback = "msg_" + obj['type']
@@ -232,7 +234,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self.buffer += data
 
 	def parse(self, line):
-		obj = self.serializer.deserialize(line)
+		obj = self.serializer.deserialize(line, self)
 		if 'type' not in obj:
 			return
 		callback = "msg_" + obj['type']
