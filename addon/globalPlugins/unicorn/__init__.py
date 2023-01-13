@@ -28,8 +28,9 @@ import ssl
 from . import callback_manager
 from . import unicorn
 import json
-import addonAPIVersion
+import versionInfo
 addonHandler.initTranslation()
+
 
 REMOTE_SHELL_CLASSES = {
 	'TscShellContainerClass',
@@ -72,7 +73,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.sd_server = None
 		self.sd_relay = None
 		self.sd_bridge = None
-		if addonAPIVersion.CURRENT < (2022, 1, 0):
+		if versionInfo.version_year < 2022:
 			commonAppData = shlobj.SHGetFolderPath(0, shlobj.CSIDL_COMMON_APPDATA)
 		else:
 			commonAppData = shlobj.SHGetKnownFolderPath(shlobj.FolderId.PROGRAM_DATA)
@@ -83,6 +84,8 @@ class GlobalPlugin(GlobalPlugin):
 		wx.CallLater(500, self.perform_autoconnect)
 		self.sd_focused = False
 		self.rs_focused = False
+		if versionInfo.version_year >= 2023:
+			braille.handler.decide_enabled.register(self.local_machine.handle_decide_enabled)
 
 	def initializeConfig(self):
 		if "unicorn" not in conf:
@@ -130,6 +133,8 @@ class GlobalPlugin(GlobalPlugin):
 		self.submenu_item = gui.mainFrame.sysTrayIcon.menu.Insert(2, wx.ID_ANY, _("UnicornDVC"), self.menu)
 
 	def terminate(self):
+		if versionInfo.version_year >= 2023:
+			braille.handler.decide_enabled.unregister(self.local_machine.handle_decide_enabled)
 		self.disconnect()
 		self.local_machine = None
 		if self.submenu_item is not None:
@@ -317,7 +322,8 @@ class GlobalPlugin(GlobalPlugin):
 	def set_receiving_braille(self, state):
 		if state and self.master_session and self.master_session.patch_callbacks_added and braille.handler.enabled:
 			self.master_session.patcher.patch_braille_input()
-			braille.handler.enabled = False
+			if versionInfo.version_year < 2023:
+				braille.handler.enabled = False
 			if braille.handler._cursorBlinkTimer:
 				braille.handler._cursorBlinkTimer.Stop()
 				braille.handler._cursorBlinkTimer = None
@@ -330,7 +336,8 @@ class GlobalPlugin(GlobalPlugin):
 			self.local_machine.receiving_braille = True
 		elif self.master_session and not state:
 			self.master_session.patcher.unpatch_braille_input()
-			braille.handler.enabled = bool(braille.handler.displaySize)
+			if versionInfo.version_year < 2023:
+				braille.handler.enabled = bool(braille.handler.displaySize)
 			self.local_machine.receiving_braille=False
 
 	def event_gainFocus(self, obj, nextHandler):

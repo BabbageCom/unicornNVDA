@@ -7,9 +7,11 @@ from collections import defaultdict
 import tones
 import synthDriverHandler
 from logHandler import log
+import versionInfo
 
 EXCLUDED_SPEECH_COMMANDS = (
 	speech.commands.BaseCallbackCommand,
+	# _CancellableSpeechCommands are not designed to be reported and are used internally by NVDA. (#230)
 	speech.commands._CancellableSpeechCommand,
 )
 
@@ -37,6 +39,9 @@ class SlaveSession(RemoteSession):
 		self.transport.callback_manager.register_callback('msg_channel_joined', self.handle_channel_joined)
 		self.transport.callback_manager.register_callback('msg_set_braille_info', self.handle_braille_info)
 		self.transport.callback_manager.register_callback('msg_set_display_size', self.set_display_size)
+		if versionInfo.version_year >= 2023:
+			braille.handler.filter_displaySize.register(self.local_machine.handle_filter_displaySize)
+
 		self.transport.callback_manager.register_callback('msg_braille_input', self.local_machine.braille_input)
 
 	def handle_client_connected(self, client=None, **kwargs):
@@ -183,9 +188,12 @@ class MasterSession(RemoteSession):
 			self.patch_callbacks_added = False
 		tones.beep(108, 300)
 
-	def send_braille_info(self, **kwargs):
-		display = braille.handler.display
-		self.transport.send(type="set_braille_info", name=display.name, numCells=display.numCells or braille.handler.displaySize)
+	def send_braille_info(self, display=None, displaySize=None, **kwargs):
+		if display is None:
+			display = braille.handler.display
+		if displaySize is None:
+			displaySize = braille.handler.displaySize
+		self.transport.send(type="set_braille_info", name=display.name, numCells=displaySize)
 
 	def braille_input(self, **kwargs):
 		self.transport.send(type="braille_input", **kwargs)
