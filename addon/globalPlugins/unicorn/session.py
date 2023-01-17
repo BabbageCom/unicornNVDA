@@ -40,7 +40,7 @@ class SlaveSession(RemoteSession):
 		self.transport.callback_manager.register_callback('msg_set_braille_info', self.handle_braille_info)
 		self.transport.callback_manager.register_callback('msg_set_display_size', self.set_display_size)
 		if versionInfo.version_year >= 2023:
-			braille.handler.filter_displaySize.register(self.local_machine.handle_filter_displaySize)
+			braille.filter_displaySize.register(self.local_machine.handle_filter_displaySize)
 
 		self.transport.callback_manager.register_callback('msg_braille_input', self.local_machine.braille_input)
 
@@ -114,16 +114,16 @@ class SlaveSession(RemoteSession):
 		return list([
 			item for item in speechSequence
 			if not isinstance(item, EXCLUDED_SPEECH_COMMANDS)
-			#else: 
+			#else:
 			#	"Babbage tries its best"
 		])
-		
+
 		#retList = speechSequence
 		#for item in retList:
 		#	if (isinstance(item, EXCLUDED_SPEECH_COMMANDS)):
 		#		retList[retList.index(item)] = ""
-		#log.warning("*** %r" % retList)		
-		#return retList		
+		#log.warning("*** %r" % retList)
+		#return retList
 
 	def speak(self, speechSequence, priority):
 		#self.transport.send(type="speak", sequence=speechSequence, priority=priority)

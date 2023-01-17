@@ -38,7 +38,7 @@ REMOTE_SHELL_CLASSES = {
 }
 
 
-def skipEventAndCall(handler):	
+def skipEventAndCall(handler):
 	def wrapWithEventSkip(event):
 		if event:
 			event.Skip()
@@ -85,7 +85,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.sd_focused = False
 		self.rs_focused = False
 		if versionInfo.version_year >= 2023:
-			braille.handler.decide_enabled.register(self.local_machine.handle_decide_enabled)
+			braille.decide_enabled.register(self.local_machine.handle_decide_enabled)
 
 	def initializeConfig(self):
 		if "unicorn" not in conf:
@@ -134,7 +134,7 @@ class GlobalPlugin(GlobalPlugin):
 
 	def terminate(self):
 		if versionInfo.version_year >= 2023:
-			braille.handler.decide_enabled.unregister(self.local_machine.handle_decide_enabled)
+			braille.decide_enabled.unregister(self.local_machine.handle_decide_enabled)
 		self.disconnect()
 		self.local_machine = None
 		if self.submenu_item is not None:
