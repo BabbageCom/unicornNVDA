@@ -33,7 +33,8 @@ addonHandler.initTranslation()
 
 REMOTE_SHELL_CLASSES = {
 	'TscShellContainerClass',
-	'CtxICADisp', 'Transparent Windows Client'
+	'CtxICADisp',
+	'Transparent Windows Client'
 }
 
 
@@ -151,7 +152,7 @@ class GlobalPlugin(GlobalPlugin):
 
 	def connect_master(self):
 		try:
-			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master')
+			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master', maxBytes =conf['unicorn']['maxBytes'] )
 		except OSError as e:
 			self.on_initialize_failed(e)
 			return
@@ -170,7 +171,7 @@ class GlobalPlugin(GlobalPlugin):
 
 	def connect_slave(self):
 		try:
-			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
+			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave', maxBytes =conf['unicorn']['maxBytes'])
 		except OSError as e:
 			self.on_initialize_failed(e)
 			return

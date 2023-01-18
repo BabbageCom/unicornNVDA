@@ -161,7 +161,7 @@ class RelayTransport(TCPTransport):
 
 class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 
-	def __init__(self, serializer, timeout=60, connection_type=None, protocol_version=PROTOCOL_VERSION):
+	def __init__(self, serializer, timeout=60, connection_type=None, protocol_version=PROTOCOL_VERSION, maxBytes = 4096):
 		Transport.__init__(self, serializer=serializer)
 		unicorn.UnicornCallbackHandler.__init__(self)
 		if connection_type not in DVCTYPES:
@@ -181,6 +181,8 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self.protocol_version = protocol_version
 		self.callback_manager.register_callback('msg_protocol_version', self.handle_p2p)
 		self	.initialize_lib()
+		# F_Giepmans, 15-11-2022: potentiele fix voor citrix probleem waarbij  de hele citrix omgeving over zijn nek gaat
+		self.maxBytes = maxBytes
 
 	def initialize_lib(self):
 		if self.initialized:
@@ -247,6 +249,9 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 			if item is None:
 				return
 			strbuf = ctypes.create_unicode_buffer(item)
+			if ctypes.sizeof(strbuf) > self.maxBytes:
+				log.error(f"data packet is to big for unicorn to handle! package: \n {item}")
+				continue
 			res = self.lib.Write(ctypes.sizeof(strbuf), ctypes.cast(strbuf, ctypes.POINTER(ctypes.wintypes.BYTE)))
 			if res:
 				log.warning(ctypes.WinError(res))
