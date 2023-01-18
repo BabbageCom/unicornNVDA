@@ -49,7 +49,7 @@ class SlaveSession(RemoteSession):
 		if not self.patch_callbacks_added:
 			self.add_patch_callbacks()
 			self.patch_callbacks_added = True
-		self.patcher.orig_beep(1000, 300)
+		(self.patcher.orig_beep or tones.beep)(1000, 300)
 		if client['connection_type'] == 'master':
 			self.masters[client['id']]['active'] = True
 
@@ -69,7 +69,7 @@ class SlaveSession(RemoteSession):
 			self.patch_callbacks_added = False
 
 	def handle_client_disconnected(self, client=None, **kwargs):
-		self.patcher.orig_beep(108, 300)
+		(self.patcher.orig_beep or tones.beep)(108, 300)
 		if client['connection_type'] == 'master':
 			del self.masters[client['id']]
 		if not self.masters:
@@ -136,11 +136,11 @@ class SlaveSession(RemoteSession):
 	def cancel_speech(self):
 		self.transport.send(type="cancel")
 
-	def beep(self, hz, length, left=50, right=50):
-		self.transport.send(type='tone', hz=hz, length=length, left=left, right=right)
+	def beep(self, hz, length, left=50, right=50, isSpeechBeepCommand=False):
+		self.transport.send(type='tone', hz=hz, length=length, left=left, right=right, isSpeechBeepCommand=isSpeechBeepCommand)
 
-	def playWaveFile(self, fileName, asynchronous=True):
-		self.transport.send(type='wave', fileName=fileName, asynchronous=asynchronous)
+	def playWaveFile(self, fileName, asynchronous=True, isSpeechWaveFileCommand=False):
+		self.transport.send(type='wave', fileName=fileName, asynchronous=asynchronous, isSpeechWaveFileCommand=isSpeechWaveFileCommand)
 
 	def display(self, cells):
 		# Only send braille data when there are controlling machines with a braille display
