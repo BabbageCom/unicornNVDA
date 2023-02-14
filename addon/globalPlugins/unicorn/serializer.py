@@ -4,19 +4,20 @@ import json
 import speech.commands
 from logHandler import log
 from . import callbackCommandsDatabase
-
+from . import transport
+from typing import Dict
 class JSONSerializer:
 	SEP = '\n'
 
-	def serialize(self, type=None, **obj):
+	def serialize(self, type=None, **obj) -> str:
 		obj['type'] = type
 		data = json.dumps(obj, cls=CustomEncoder) + self.SEP
 		return data
 
-	def deserialize(self, data, transporter = None):
+	def deserialize(self, data: str):
 		# complicated lambda because of the callbackCommandbounce. It needs the transporter itself to send back the command
-		def as_sequenceWithTransporter(dct, transporter = transporter):
-			return as_sequence(dct, transporter = transporter)
+		def as_sequenceWithTransporter(dct):
+			return as_sequence(dct)
 		obj = json.loads(data, object_hook=as_sequenceWithTransporter)
 		return obj
 
@@ -54,15 +55,16 @@ def is_subclass_or_instance(unknown, possible):
 		return isinstance(unknown, possible)
 
 
-def makeCallBackCommandWrapper(transporter, compName, index):
-	# the transporter is the
-	def _callBackWrapper(computerName = compName, ii = index):
-		return transporter.send(type="callbackCommandBounce", compName = computerName, index = ii)
-
-	return speech.commands.CallbackCommand(_callBackWrapper)
 
 
-def as_sequence(dct, transporter = None):
+class callBackCommandBounce:
+
+	def __init__(self, compName: str, index: int):
+		self.compName = compName
+		self.index = index
+
+
+def as_sequence(dct: Dict) -> Dict:
 	if not ('type' in dct and dct['type'] == 'speak' and 'sequence' in dct):
 		return dct
 	sequence = []
@@ -74,10 +76,7 @@ def as_sequence(dct, transporter = None):
 
 		# deserialize callback command that directly bounces back the callback to the remote server that should call it
 		if name == 'callbackCommandBounce':
-			if not transporter:
-				log.debugWarning("got callbackCommandBounce but does not have the transporter")
-				continue
-			inst = makeCallBackCommandWrapper(transporter, compName=values['compName'], index=values['index'])
+			inst = callBackCommandBounce(values['compName'], values['index'])
 			sequence.append(inst)
 			continue
 

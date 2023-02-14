@@ -8,25 +8,38 @@ from logHandler import log
 from . import callback_manager
 import ctypes.wintypes
 from . import unicorn
+from . import serializer
 import core
+from typing import Union, Iterable, List
+from enum import Enum
+import speech.commands
 
 PROTOCOL_VERSION = 2
-DVCTYPES = ('slave', 'master')
+#DVCTYPES = ('slave', 'master')
+
+class DVCTYPES(Enum):
+	slave = "slave"
+	master = "master"
 
 
 class Transport:
 
-	def __init__(self, serializer):
+	def __init__(self, serializer: serializer.JSONSerializer):
 		self.serializer = serializer
 		self.callback_manager = callback_manager.CallbackManager()
 		self.connected = False
 		self.successful_connects = 0
 
-	def transport_connected(self):
+	def transport_connected(self) -> None:
 		self.successful_connects += 1
 		self.connected = True
 		self.callback_manager.call_callbacks('transport_connected')
 
+	def send(self, type: str, *args, **kwargs) -> None:
+		pass
+
+	def run(self):
+		pass
 
 class TCPTransport(Transport):
 
@@ -98,9 +111,7 @@ class TCPTransport(Transport):
 		self.buffer += data
 
 	def parse(self, line):
-		# deserialize object needs the transporter for callback commands. If there is a sequence with a callback command
-		# it should be able to directly call the send method of the transporter.
-		obj = self.serializer.deserialize(line, self)
+		obj = self.serializer.deserialize(line)
 		if 'type' not in obj:
 			return
 		callback = "msg_" + obj['type']
@@ -161,13 +172,19 @@ class RelayTransport(TCPTransport):
 
 class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 
-	def __init__(self, serializer, timeout=60, connection_type=None, protocol_version=PROTOCOL_VERSION, maxBytes = 4096):
+	def __init__(
+			self,
+			serializer: serializer.JSONSerializer,
+			connection_type: unicorn.CTYPE,
+			timeout: int = 60,
+			protocol_version: int = PROTOCOL_VERSION,
+			maxBytes: int = 4096
+		):
 		Transport.__init__(self, serializer=serializer)
 		unicorn.UnicornCallbackHandler.__init__(self)
-		if connection_type not in DVCTYPES:
-			raise ValueError("Unsupported connection type for DVC connection")
-		log.info("Connecting to DVC as %s" % connection_type)
-		self.lib = unicorn.Unicorn(DVCTYPES.index(connection_type), self)
+
+		log.info(f"Connecting to DVC as {connection_type}")
+		self.lib = unicorn.Unicorn(connection_type, self)
 		self.opened = False
 		self.initialized = False
 		# Buffer to hold partially received data
@@ -180,11 +197,11 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self.connection_type = connection_type
 		self.protocol_version = protocol_version
 		self.callback_manager.register_callback('msg_protocol_version', self.handle_p2p)
-		self	.initialize_lib()
-		# F_Giepmans, 15-11-2022: potentiele fix voor citrix probleem waarbij  de hele citrix omgeving over zijn nek gaat
+		self.initialize_lib()
+		# F_Giepmans, 15-11-2022: Temporary fix for Citrix enviroments where the max buffer length is reached.
 		self.maxBytes = maxBytes
 
-	def initialize_lib(self):
+	def initialize_lib(self) -> None:
 		if self.initialized:
 			return
 		res = self.lib.Initialize()
@@ -192,7 +209,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 			raise ctypes.WinError(res)
 		self.initialized = True
 
-	def terminate_lib(self):
+	def terminate_lib(self) -> None:
 		if not self.initialized:
 			return
 		res = self.lib.Terminate()
@@ -200,7 +217,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 			raise ctypes.WinError(res)
 		self.initialized = False
 
-	def run(self):
+	def run(self) -> None:
 		self.interrupt_event.clear()
 		res = self.lib.Open()
 		if res >= 1 << 31:
@@ -210,7 +227,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 			raise ctypes.WinError(res)
 		elif res:
 			raise ctypes.WinError(res)
-		if self.connection_type == 'master' and not unicorn.unicorn_client():  # Master
+		if self.connection_type == unicorn.CTYPE.CLIENT and not unicorn.unicorn_client():  # Master
 			self.callback_manager.call_callbacks('transport_connection_failed')
 			raise ctypes.WinError(res)
 		self.opened = True
@@ -221,7 +238,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self.callback_manager.call_callbacks('transport_disconnected')
 		self._disconnect()
 
-	def handle_data(self, string):
+	def handle_data(self, string: str) -> None:
 		data = self.buffer + string
 		self.buffer = ""
 		if data == '':
@@ -236,14 +253,39 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self.buffer += data
 
 	def parse(self, line):
-		obj = self.serializer.deserialize(line, self)
+		# deserialize object needs the transporter for callback commands. If there is a sequence with a callback command
+		# it should be able to directly call the send method of the transporter.
+		obj = self.serializer.deserialize(line)
 		if 'type' not in obj:
 			return
+		if 'sequence' in obj:
+			obj['sequence'] = self.replaceCallbacksPlaceholdersWithActualCallbacks(obj['sequence'])
 		callback = "msg_" + obj['type']
 		del obj['type']
 		self.callback_manager.call_callbacks(callback, **obj)
 
-	def send_queue(self):
+	def replaceCallbacksPlaceholdersWithActualCallbacks(self, sequence: List) -> List:
+		# callback-bounce commands are embedded in the deserialized speech sequence, but need to be translated into
+		# actually callable functions.
+		newSequence = []
+		for item in sequence:
+			if isinstance(item, serializer.callBackCommandBounce):
+				newSequence.append(self.makeCallBackCommandWrapper(item.compName, item.index))
+			else:
+				newSequence.append(item)
+		return newSequence
+
+	def makeCallBackCommandWrapper(
+			self,
+			compName: str,
+			index: int
+	) -> speech.commands.CallbackCommand:
+		def _callBackWrapper(computerName: str = compName, ii: int = index) -> None:
+			self.send(type="callbackCommandBounce", compName=computerName, index=ii)
+
+		return speech.commands.CallbackCommand(_callBackWrapper)
+
+	def send_queue(self) -> None:
 		while True:
 			item = self.queue.get()
 			if item is None:
@@ -257,12 +299,12 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 				log.warning(ctypes.WinError(res))
 				# return
 
-	def send(self, type, origin=None, **kwargs):
-		obj = self.serializer.serialize(type=type, origin=origin or -1, **kwargs)
+	def send(self, type: str, origin: int = -1, **kwargs) -> None:
+		obj = self.serializer.serialize(type=type, origin=origin, **kwargs)
 		if self.connected:
 			self.queue.put(obj)
 
-	def _disconnect(self):
+	def _disconnect(self) -> None:
 		if not self.connected and not self.opened:
 			return
 		self.interrupt_event.set()
@@ -277,7 +319,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self.connected = False
 		self.opened = False
 
-	def close(self):
+	def close(self) -> None:
 		self.callback_manager.call_callbacks('transport_closing')
 		self.reconnector_thread.running = False
 		self._disconnect()
@@ -287,33 +329,33 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 			raise ctypes.WinError(res)
 		self.reconnector_thread = ConnectorThread(self, run_except=EnvironmentError)
 
-	def handle_p2p(self, version, **kwargs):
+	def handle_p2p(self, version: int, **kwargs) -> None:
 		if version == PROTOCOL_VERSION:
 			self.send(type='client_joined', client=dict(id=-1, connection_type=self.connection_type))
 		else:
 			self.send(type='version_mismatch')
 
-	def _Connected(self):
+	def _Connected(self) -> int:
 		log.info("Connected to remote protocol server")
 		return 0
 
-	def _Disconnected(self, dwDisconnectCode):
+	def _Disconnected(self, dwDisconnectCode) -> int:
 		log.warning("Disconnected from remote protocol server")
 		self._disconnect()
 		return 0
 
-	def _Terminated(self):
+	def _Terminated(self) -> int:
 		log.info("Remote protocol client terminated")
 		self._disconnect()
 		return 0
 
-	def _OnNewChannelConnection(self):
+	def _OnNewChannelConnection(self) -> int:
 		log.info("DVC connection initiated from remote protocol server")
 		self.transport_connected()
 		self.send('protocol_version', version=self.protocol_version)
 		return 0
 
-	def _OnDataReceived(self, cbSize, pBuffer):
+	def _OnDataReceived(self, cbSize: int, pBuffer: ctypes.POINTER(ctypes.wintypes.BYTE) ) -> int:
 		pBuffer = ctypes.cast(pBuffer, ctypes.POINTER(ctypes.c_wchar * (cbSize // ctypes.sizeof(ctypes.c_wchar))))
 		string = "".join(pBuffer.contents)
 		if "\x00" not in string:
@@ -322,27 +364,27 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 			self.handle_data(string.replace("\x00", ""))
 		return 0
 
-	def _OnReadError(self, dwError):
+	def _OnReadError(self, dwError) -> int:
 		log.warning("Error reading from DVC, %d" % dwError)
 		self.interrupt_event.set()
 		return 0
 
-	def _OnClose(self):
+	def _OnClose(self) -> int:
 		log.info("DVC close request received")
 		self.callback_manager.call_callbacks('msg_client_left', client=dict(id=-1))
 		self._disconnect()
 		return 0
 
-	def _OnTrial(self):
+	def _OnTrial(self) -> None:
 		core.callLater(2000, self.callback_manager.call_callbacks, 'transport_connection_in_trial_mode')
 
-	def _OnTrialExpired(self):
+	def _OnTrialExpired(self) -> None:
 		self.callback_manager.call_callbacks('transport_trial_expired')
 
 
 class ConnectorThread(threading.Thread):
 
-	def __init__(self, connector, connect_delay=5, run_except=socket.error):
+	def __init__(self, connector: Transport, connect_delay: int = 5, run_except: type(OSError) = socket.error):
 		super().__init__()
 		self.connect_delay = connect_delay
 		self.run_except = run_except
@@ -351,7 +393,7 @@ class ConnectorThread(threading.Thread):
 		self.name = self.name + "_connector_loop"
 		self.daemon = True
 
-	def run(self):
+	def run(self) -> None:
 		while self.running:
 			try:
 				self.connector.run()
@@ -364,7 +406,7 @@ class ConnectorThread(threading.Thread):
 		log.info("Ending control connector thread %s" % self.name)
 
 
-def clear_queue(queue):
+def clear_queue(queue: queue.Queue) -> None:
 	try:
 		while True:
 			queue.get_nowait()
