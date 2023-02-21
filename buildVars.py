@@ -35,7 +35,7 @@ addon_info = {
 	"addon_lastTestedNVDAVersion" : "2023.1",
 }
 
-isbeta = True
+isbeta = False
 if isbeta:
 	addon_info["addon_name"] += "_BETA"
 	addon_info["addon_summary"] += "(Beta version)"
