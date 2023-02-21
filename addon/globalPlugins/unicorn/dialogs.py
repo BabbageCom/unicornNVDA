@@ -19,11 +19,18 @@ class UnicornPanel(SettingsPanel):
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in server mode on startup"))
 		)
 		self.autoConnectSlaveCheckBox.Value = config.conf["unicorn"]["autoConnectServer"]
+
 		self.autoConnectMasterCheckBox = sizer_helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in client mode on startup"))
 		)
 		self.autoConnectMasterCheckBox.Value = config.conf["unicorn"]["autoConnectClient"]
 		self.autoConnectMasterCheckBox.Enable(bool(unicorn.unicorn_client()))
+
+		self.cutOffLargeMesssagesCheckBox = sizer_helper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label=_("Cut-off messages above 5000 bytes"))
+		)
+		self.cutOffLargeMesssagesCheckBox.Value = config.conf["unicorn"]["limitMessageSize"]
+		self.cutOffLargeMesssagesCheckBox.Enable(bool(unicorn.unicorn_client()))
 
 		licenseButton = sizer_helper.addItem(wx.Button(self, label=_("Manage Unicorn license...")))
 		licenseButton.Bind(wx.EVT_BUTTON,self.onLicense)
@@ -35,6 +42,7 @@ class UnicornPanel(SettingsPanel):
 	def onSave(self) -> None:
 		config.conf["unicorn"]["autoConnectServer"] = self.autoConnectSlaveCheckBox.Value
 		config.conf["unicorn"]["autoConnectClient"] = self.autoConnectMasterCheckBox.Value
+		config.conf["unicorn"]["limitMessageSize"] = self.cutOffLargeMesssagesCheckBox.Value
 
 
 class UnicornLicenseDialog(wx.Dialog):

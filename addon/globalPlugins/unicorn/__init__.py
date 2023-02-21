@@ -161,7 +161,9 @@ class GlobalPlugin(GlobalPlugin):
 
 	def connect_master(self) -> None:
 		try:
-			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type=unicorn.CTYPE.CLIENT, maxBytes =conf['unicorn']['maxBytes'] )
+
+			maxBytes = conf['unicorn']['maxBytes'] if conf['unicorn']['limitMessageSize'] else 10**9
+			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type=unicorn.CTYPE.CLIENT, maxBytes=maxBytes)
 		except OSError as e:
 			self.on_initialize_failed(e)
 			return
@@ -180,7 +182,8 @@ class GlobalPlugin(GlobalPlugin):
 
 	def connect_slave(self) -> None:
 		try:
-			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type=unicorn.CTYPE.SERVER, maxBytes =conf['unicorn']['maxBytes'])
+			maxBytes = conf['unicorn']['maxBytes'] if conf['unicorn']['limitMessageSize'] else 10 ** 9
+			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type=unicorn.CTYPE.SERVER, maxBytes=maxBytes)
 		except OSError as e:
 			self.on_initialize_failed(e)
 			return
