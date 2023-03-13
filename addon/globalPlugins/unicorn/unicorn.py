@@ -6,10 +6,12 @@ except:
 import sys
 from ctypes import *
 from ctypes.wintypes import *
-
+import enum
 ARCHITECTURE=len(bin(sys.maxsize)[1:])
-CTYPE_SERVER=0
-CTYPE_CLIENT=1
+
+class CTYPE(enum.IntEnum):
+	SERVER = 0
+	CLIENT = 1
 
 def unicorn_lib_path():
 	locations = [os.path.abspath(os.path.dirname(__file__))]
@@ -45,15 +47,13 @@ def unicorn_client():
 class Unicorn(object):
 	"""Class to facilitate DVC communication using the Unicorn DVC library"""
 
-	def __init__(self, connectionType, callbackHandler, supportView=True, libPath=None):
-		if not connectionType in (CTYPE_SERVER, CTYPE_CLIENT):
-			raise ValueError("Invalid connection type")
+	def __init__(self, connectionType: CTYPE, callbackHandler, supportView=True, libPath=None):
 		if not isinstance(callbackHandler, UnicornCallbackHandler):
 			raise TypeError("callbackHandler must be of type UnicornCallbackHandler")
 		if libPath and not os.path.isfile(libPath):
 			raise ValueError("The supplied library path does not exist")
 		self.lib=None
-		self.connectionType=connectionType
+		self.connectionType=connectionType.value
 		self.callbackHandler=callbackHandler
 		self.supportView=supportView
 		if supportView:
@@ -206,7 +206,7 @@ class UnicornCallbackHandler(object):
 	def _OnNewChannelConnection(self):
 		raise NotImplementedError
 
-	def _OnDataReceived(self,cbSize,data):
+	def _OnDataReceived(self, cbSize, data):
 		raise NotImplementedError
 
 	def _OnReadError(self,dwError):

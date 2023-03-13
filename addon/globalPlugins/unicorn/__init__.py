@@ -1,43 +1,49 @@
 import os
 import threading
 import socket
-from globalPluginHandler import GlobalPlugin
-import wx
-from config import conf
-from .configSpec import configSpec
-import gui
-from . import beep_sequence
-from .transport import RelayTransport, DVCTransport
+import NVDAObjects
 import braille
-from . import local_machine
-from . import serializer
-from .session import MasterSession, SlaveSession
 import ui
 import addonHandler
-from logHandler import log
-from . import dialogs
 import IAccessibleHandler
 import speech.priorities
 import globalVars
 import shlobj
 import uuid
-from . import server
-from . import bridge
 import api
 import ssl
+import json
+import versionInfo
+import wx
+import gui
+from logHandler import log
+from globalPluginHandler import GlobalPlugin
+from config import conf
+from typing import Callable
+
+from .configSpec import configSpec
+from . import beep_sequence
+from .transport import RelayTransport, DVCTransport
+from . import local_machine
+from . import serializer
+from .session import MasterSession, SlaveSession
+from . import dialogs
+from . import server
+from . import bridge
 from . import callback_manager
 from . import unicorn
-import json
-import addonAPIVersion
+
 addonHandler.initTranslation()
+
 
 REMOTE_SHELL_CLASSES = {
 	'TscShellContainerClass',
-	'CtxICADisp', 'Transparent Windows Client'
+	'CtxICADisp',
+	'Transparent Windows Client'
 }
 
 
-def skipEventAndCall(handler):	
+def skipEventAndCall(handler):
 	def wrapWithEventSkip(event):
 		if event:
 			event.Skip()
@@ -72,7 +78,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.sd_server = None
 		self.sd_relay = None
 		self.sd_bridge = None
-		if addonAPIVersion.CURRENT < (2022, 1, 0):
+		if versionInfo.version_year < 2022:
 			commonAppData = shlobj.SHGetFolderPath(0, shlobj.CSIDL_COMMON_APPDATA)
 		else:
 			commonAppData = shlobj.SHGetKnownFolderPath(shlobj.FolderId.PROGRAM_DATA)
@@ -83,19 +89,21 @@ class GlobalPlugin(GlobalPlugin):
 		wx.CallLater(500, self.perform_autoconnect)
 		self.sd_focused = False
 		self.rs_focused = False
+		if versionInfo.version_year >= 2023:
+			braille.decide_enabled.register(self.local_machine.handle_decide_enabled)
 
-	def initializeConfig(self):
+	def initializeConfig(self) -> None:
 		if "unicorn" not in conf:
 			conf['unicorn'] = {}
 		conf['unicorn'].spec.update(configSpec)
 
-	def perform_autoconnect(self):
+	def perform_autoconnect(self) -> None:
 		if conf['unicorn']['autoConnectClient'] and unicorn.unicorn_client():
 			self.connect_master()
 		if conf['unicorn']['autoConnectServer']:
 			self.connect_slave()
 
-	def create_menu(self):
+	def create_menu(self) -> None:
 		self.menu = wx.Menu()
 		self.connect_master_item = self.menu.Append(wx.ID_ANY, _("Connect client"))
 		self.connect_master_item.Enable(unicorn.unicorn_client())
@@ -129,7 +137,9 @@ class GlobalPlugin(GlobalPlugin):
 
 		self.submenu_item = gui.mainFrame.sysTrayIcon.menu.Insert(2, wx.ID_ANY, _("UnicornDVC"), self.menu)
 
-	def terminate(self):
+	def terminate(self) -> None:
+		if versionInfo.version_year >= 2023:
+			braille.decide_enabled.unregister(self.local_machine.handle_decide_enabled)
 		self.disconnect()
 		self.local_machine = None
 		if self.submenu_item is not None:
@@ -149,9 +159,11 @@ class GlobalPlugin(GlobalPlugin):
 		if dialogs.UnicornPanel in gui.settingsDialogs.NVDASettingsDialog.categoryClasses:
 			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(dialogs.UnicornPanel)
 
-	def connect_master(self):
+	def connect_master(self) -> None:
 		try:
-			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='master')
+
+			maxBytes = conf['unicorn']['maxBytes'] if conf['unicorn']['limitMessageSize'] else 10**9
+			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type=unicorn.CTYPE.CLIENT, maxBytes=maxBytes)
 		except OSError as e:
 			self.on_initialize_failed(e)
 			return
@@ -168,9 +180,10 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_master_item.Enable()
 		self.connect_master_item.Enable(False)
 
-	def connect_slave(self):
+	def connect_slave(self) -> None:
 		try:
-			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type='slave')
+			maxBytes = conf['unicorn']['maxBytes'] if conf['unicorn']['limitMessageSize'] else 10 ** 9
+			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type=unicorn.CTYPE.SERVER, maxBytes=maxBytes)
 		except OSError as e:
 			self.on_initialize_failed(e)
 			return
@@ -183,18 +196,18 @@ class GlobalPlugin(GlobalPlugin):
 		self.connect_slave_item.Enable(False)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_slave_failed)
 
-	def send_braille_info_to_master(self, *args, **kwargs):
+	def send_braille_info_to_master(self, *args, **kwargs) -> None:
 		if self.master_session:
 			self.master_session.send_braille_info(*args, **kwargs)
 
-	def disconnect(self):
+	def disconnect(self) -> None:
 		if self.master_transport is not None:
 			self.disconnect_master()
 		if self.slave_transport is not None:
 			self.disconnect_slave()
 
-	def disconnect_master(self):
-		self.callback_manager.call_callbacks('transport_disconnect', connection_type='master')
+	def disconnect_master(self) -> None:
+		self.callback_manager.call_callbacks('transport_disconnect', connection_type = unicorn.CTYPE.CLIENT)
 		self.master_transport.close()
 		self.master_transport = None
 		self.master_session = None
@@ -202,7 +215,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_master_item.Enable(False)
 		self.connect_master_item.Enable()
 
-	def disconnecting_as_master(self):
+	def disconnecting_as_master(self) -> None:
 		if self.menu:
 			self.connect_master_item.Enable()
 			self.disconnect_master_item.Enable(False)
@@ -212,8 +225,8 @@ class GlobalPlugin(GlobalPlugin):
 			self.local_machine.is_muted = False
 		self.sending_keys = False
 
-	def disconnect_slave(self):
-		self.callback_manager.call_callbacks('transport_disconnect', connection_type='slave')
+	def disconnect_slave(self) -> None:
+		self.callback_manager.call_callbacks('transport_disconnect', connection_type = unicorn.CTYPE.SERVER)
 		self.slave_transport.close()
 		self.slave_transport = None
 		self.slave_session = None
@@ -221,32 +234,32 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_slave_item.Enable(False)
 		self.connect_slave_item.Enable()
 
-	def on_mute_item(self, evt):
+	def on_mute_item(self, evt) -> None:
 		evt.Skip()
 		self.local_machine.is_muted = self.mute_item.IsChecked()
 
-	def script_toggle_remote_mute(self, gesture):
+	def script_toggle_remote_mute(self, gesture) -> None:
 		self.local_machine.is_muted = not self.local_machine.is_muted
 		self.mute_item.Check(self.local_machine.is_muted)
 	script_toggle_remote_mute.__doc__ = _("""Mute or unmute the speech coming from the remote computer""")
 
-	def on_connected_as_master(self):
+	def on_connected_as_master(self) -> None:
 		self.mute_item.Enable(True)
-		self.callback_manager.call_callbacks('transport_connect', connection_type='master', transport=self.master_transport)
+		self.callback_manager.call_callbacks('transport_connect', connection_type= unicorn.CTYPE.CLIENT, transport=self.master_transport)
 		self.evaluate_remote_shell()
 		ui.message(_("Connected in client mode!"), speechPriority=speech.priorities.Spri.NOW)
 		beep_sequence.beep_sequence_async((440, 60), (660, 60))
 
-	def on_disconnected_as_master(self):
+	def on_disconnected_as_master(self) -> None:
 		# Translators: Presented when connection to a remote computer was interupted.
 		ui.message(_("Connection as client interrupted"), speechPriority=speech.priorities.Spri.NOW)
 
-	def on_connected_as_slave(self):
+	def on_connected_as_slave(self) -> None:
 		log.info("Connected DVC in server mode")
-		self.callback_manager.call_callbacks('transport_connect', connection_type='slave', transport=self.slave_transport)
+		self.callback_manager.call_callbacks('transport_connect', connection_type = unicorn.CTYPE.SERVER, transport=self.slave_transport)
 		ui.message(_("Connected in server mode!"), speechPriority=speech.priorities.Spri.NOW)
 
-	def evaluate_remote_shell(self):
+	def evaluate_remote_shell(self) -> None:
 		focus = api.getFocusObject()
 		fg = api.getForegroundObject()
 		if fg.windowClassName in REMOTE_SHELL_CLASSES or focus.windowClassName in REMOTE_SHELL_CLASSES or (focus.appModule.appName == 'vmware-view' and focus.windowClassName.startswith("ATL")):
@@ -256,7 +269,7 @@ class GlobalPlugin(GlobalPlugin):
 			self.rs_focused = False
 			self.leave_remote_shell()
 
-	def on_initialize_failed(self, e):
+	def on_initialize_failed(self, e: Exception) -> None:
 		# Translators: Title of the connection error dialog.
 		wx.CallAfter(
 			gui.messageBox,
@@ -267,7 +280,7 @@ class GlobalPlugin(GlobalPlugin):
 			style=wx.OK | wx.ICON_WARNING
 		)
 
-	def on_connected_as_master_failed(self):
+	def on_connected_as_master_failed(self) -> None:
 		self.disconnect_master_item.Enable(False)
 		self.connect_master_item.Enable()
 		if self.master_transport.successful_connects == 0:
@@ -280,7 +293,7 @@ class GlobalPlugin(GlobalPlugin):
 				style=wx.OK | wx.ICON_WARNING
 			)
 
-	def on_connected_in_trial_mode(self):
+	def on_connected_in_trial_mode(self) -> None:
 		if globalVars.appArgs.secure:
 			return
 		# Translators: Title of the trial dialog.
@@ -292,7 +305,7 @@ class GlobalPlugin(GlobalPlugin):
 			style=wx.OK | wx.ICON_WARNING
 		)
 
-	def on_trial_expired(self):
+	def on_trial_expired(self) -> None:
 		# Translators: Title of the trial dialog.
 		gui.messageBox(
 			parent=gui.mainFrame,
@@ -303,7 +316,7 @@ class GlobalPlugin(GlobalPlugin):
 			style=wx.OK | wx.ICON_WARNING
 		)
 
-	def on_connected_as_slave_failed(self):
+	def on_connected_as_slave_failed(self) -> None:
 		if self.slave_transport.successful_connects == 0:
 			self.disconnect_slave()
 			gui.messageBox(
@@ -314,10 +327,11 @@ class GlobalPlugin(GlobalPlugin):
 				style=wx.OK | wx.ICON_WARNING
 			)
 
-	def set_receiving_braille(self, state):
+	def set_receiving_braille(self, state: bool) -> None:
 		if state and self.master_session and self.master_session.patch_callbacks_added and braille.handler.enabled:
 			self.master_session.patcher.patch_braille_input()
-			braille.handler.enabled = False
+			if versionInfo.version_year < 2023:
+				braille.handler.enabled = False
 			if braille.handler._cursorBlinkTimer:
 				braille.handler._cursorBlinkTimer.Stop()
 				braille.handler._cursorBlinkTimer = None
@@ -330,10 +344,11 @@ class GlobalPlugin(GlobalPlugin):
 			self.local_machine.receiving_braille = True
 		elif self.master_session and not state:
 			self.master_session.patcher.unpatch_braille_input()
-			braille.handler.enabled = bool(braille.handler.displaySize)
+			if versionInfo.version_year < 2023:
+				braille.handler.enabled = bool(braille.handler.displaySize)
 			self.local_machine.receiving_braille=False
 
-	def event_gainFocus(self, obj, nextHandler):
+	def event_gainFocus(self, obj: NVDAObjects.NVDAObject, nextHandler: Callable) -> None:
 		if isinstance(obj, IAccessibleHandler.SecureDesktopNVDAObject):
 			self.sd_focused = True
 			self.enter_secure_desktop()
@@ -344,7 +359,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.evaluate_remote_shell()
 		nextHandler()
 
-	def enter_secure_desktop(self):
+	def enter_secure_desktop(self) -> None:
 		"""function ran when entering a secure desktop."""
 		if self.slave_transport is None:
 			return
@@ -367,7 +382,7 @@ class GlobalPlugin(GlobalPlugin):
 		with open(self.ipc_file, 'w') as fp:
 			json.dump(data, fp)
 
-	def leave_secure_desktop(self):
+	def leave_secure_desktop(self) -> None:
 		if self.sd_server is None:
 			return #Nothing to do
 		self.sd_bridge.disconnect()
@@ -379,19 +394,19 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_transport.callback_manager.unregister_callback('msg_set_braille_info', self.sd_on_master_display_change)
 		self.slave_session.set_display_size()
 
-	def enter_remote_shell(self):
+	def enter_remote_shell(self) -> None:
 		if self.master_transport is None or not self.rs_focused:
 			return
 		self.set_receiving_braille(True)
 
-	def leave_remote_shell(self):
+	def leave_remote_shell(self) -> None:
 		self.set_receiving_braille(False)
 
-	def sd_on_master_display_change(self, **kwargs):
+	def sd_on_master_display_change(self, **kwargs) -> None:
 		self.sd_relay.send(type='set_display_size', sizes=self.slave_session.master_display_sizes)
 
-	def connect_slave_relay(self, address, key):
-		transport = RelayTransport(serializer=serializer.JSONSerializer(), address=address, channel=key, connection_type='slave')
+	def connect_slave_relay(self, address, key) -> None:
+		transport = RelayTransport(serializer=serializer.JSONSerializer(), address=address, channel=key, connection_type = unicorn.CTYPE.SERVER)
 		self.slave_session = SlaveSession(transport=transport, local_machine=self.local_machine)
 		self.slave_transport = transport
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_connected_as_slave)
@@ -399,7 +414,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_slave_item.Enable()
 		self.connect_slave_item.Enable(False)
 
-	def handle_secure_desktop(self):
+	def handle_secure_desktop(self) -> None:
 		try:
 			with open(self.ipc_file) as fp:
 				data = json.load(fp)
@@ -413,7 +428,7 @@ class GlobalPlugin(GlobalPlugin):
 		except:
 			pass
 
-	def is_connected(self):
+	def is_connected(self) -> bool:
 		connector = self.slave_transport or self.master_transport
 		if connector is not None:
 			return connector.connected

@@ -4,7 +4,7 @@ import api
 import baseObject
 import vision
 import scriptHandler
-
+import globalPluginHandler
 
 class BrailleInputGesture(braille.BrailleDisplayGesture, brailleInput.BrailleInputGesture):
 

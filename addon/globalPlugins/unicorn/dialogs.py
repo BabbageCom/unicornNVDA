@@ -1,6 +1,8 @@
 import wx
 import gui
+import gui.guiHelper
 from . import unicorn
+from logHandler import log
 import watchdog
 import addonHandler
 from gui.settingsDialogs import SettingsPanel
@@ -11,28 +13,36 @@ addonHandler.initTranslation()
 class UnicornPanel(SettingsPanel):
 	title = _("UnicornDVC")
 
-	def makeSettings(self, settingsSizer):
+	def makeSettings(self, settingsSizer: wx.BoxSizer) -> None:
 		sizer_helper = gui.guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
 		self.autoConnectSlaveCheckBox = sizer_helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in server mode on startup"))
 		)
 		self.autoConnectSlaveCheckBox.Value = config.conf["unicorn"]["autoConnectServer"]
+
 		self.autoConnectMasterCheckBox = sizer_helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in client mode on startup"))
 		)
 		self.autoConnectMasterCheckBox.Value = config.conf["unicorn"]["autoConnectClient"]
 		self.autoConnectMasterCheckBox.Enable(bool(unicorn.unicorn_client()))
 
+		self.cutOffLargeMesssagesCheckBox = sizer_helper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label=_("Cut-off messages above 5000 bytes"))
+		)
+		self.cutOffLargeMesssagesCheckBox.Value = config.conf["unicorn"]["limitMessageSize"]
+		self.cutOffLargeMesssagesCheckBox.Enable(bool(unicorn.unicorn_client()))
+
 		licenseButton = sizer_helper.addItem(wx.Button(self, label=_("Manage Unicorn license...")))
 		licenseButton.Bind(wx.EVT_BUTTON,self.onLicense)
 
-	def onLicense(self, evt):
+	def onLicense(self, evt) -> None:
 		with UnicornLicenseDialog(self) as dlg:
 			dlg.ShowModal()
 
-	def onSave(self):
+	def onSave(self) -> None:
 		config.conf["unicorn"]["autoConnectServer"] = self.autoConnectSlaveCheckBox.Value
 		config.conf["unicorn"]["autoConnectClient"] = self.autoConnectMasterCheckBox.Value
+		config.conf["unicorn"]["limitMessageSize"] = self.cutOffLargeMesssagesCheckBox.Value
 
 
 class UnicornLicenseDialog(wx.Dialog):
@@ -49,7 +59,7 @@ class UnicornLicenseDialog(wx.Dialog):
 		# Create a temporary instance of the Unicorn object.
 		try:
 			self.handler = unicorn.UnicornCallbackHandler()
-			self.lib = unicorn.Unicorn(unicorn.CTYPE_CLIENT, self.handler)
+			self.lib = unicorn.Unicorn(unicorn.CTYPE.CLIENT, self.handler)
 		except AttributeError:
 			wx.CallAfter(
 				gui.messageBox,
@@ -79,13 +89,13 @@ class UnicornLicenseDialog(wx.Dialog):
 		self.Show()
 		self.key.SetFocus()
 
-	def on_ok(self, evt):
+	def on_ok(self, evt) -> None:
 		if not self.isLicensed:
 			self.activate(evt)
 		else:
 			self.deactivate(evt)
 
-	def activate(self, evt):
+	def activate(self, evt) -> None:
 		if not self.key.Value:
 			gui.messageBox(_("You must enter a valid license key."), _("Error"), wx.OK | wx.ICON_ERROR)
 			self.key.SetFocus()
@@ -115,7 +125,7 @@ class UnicornLicenseDialog(wx.Dialog):
 			)
 		progressDialog.done()
 
-	def deactivate(self, evt):
+	def deactivate(self, evt) -> None:
 		progressDialog = gui.IndeterminateProgressDialog(self, _("Performing request"), _("Please wait while your license is being deactivated..."))
 
 		try:
@@ -123,7 +133,7 @@ class UnicornLicenseDialog(wx.Dialog):
 		except:
 			success = False
 			message = _("There was a timeout while performing your request.")
-			log.ERROR("Activation error", exc_info=True)
+			log.error("Activation error", exc_info=True)
 
 		if not success:
 			wx.CallAfter(

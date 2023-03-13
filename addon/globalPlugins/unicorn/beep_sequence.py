@@ -2,6 +2,7 @@ import collections.abc
 import time
 import tones
 import threading
+from typing import Tuple
 
 def beep_sequence(*sequence):
 	"""	Play a simple synchronous monophonic beep sequence
