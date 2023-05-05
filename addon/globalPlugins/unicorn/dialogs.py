@@ -26,6 +26,12 @@ class UnicornPanel(SettingsPanel):
 		self.autoConnectMasterCheckBox.Value = config.conf["unicorn"]["autoConnectClient"]
 		self.autoConnectMasterCheckBox.Enable(bool(unicorn.unicorn_client()))
 
+		self.alwaysReceiveRemoteBraille = sizer_helper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label=_("always receive remote braille"))
+		)
+		self.alwaysReceiveRemoteBraille.Value = config.conf["unicorn"]["alwaysReceiveRemoteBraille"]
+		self.alwaysReceiveRemoteBraille.Enable(bool(unicorn.unicorn_client()))
+
 		self.cutOffLargeMesssagesCheckBox = sizer_helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Cut-off messages above 5000 bytes"))
 		)
@@ -43,6 +49,7 @@ class UnicornPanel(SettingsPanel):
 		config.conf["unicorn"]["autoConnectServer"] = self.autoConnectSlaveCheckBox.Value
 		config.conf["unicorn"]["autoConnectClient"] = self.autoConnectMasterCheckBox.Value
 		config.conf["unicorn"]["limitMessageSize"] = self.cutOffLargeMesssagesCheckBox.Value
+		config.conf["unicorn"]["alwaysReceiveRemoteBraille"] = self.alwaysReceiveRemoteBraille.Value
 
 
 class UnicornLicenseDialog(wx.Dialog):

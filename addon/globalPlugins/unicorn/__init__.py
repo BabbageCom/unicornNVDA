@@ -259,13 +259,23 @@ class GlobalPlugin(GlobalPlugin):
 		self.callback_manager.call_callbacks('transport_connect', connection_type = unicorn.CTYPE.SERVER, transport=self.slave_transport)
 		ui.message(_("Connected in server mode!"), speechPriority=speech.priorities.Spri.NOW)
 
+	def isRemoteShell(self, fg, focus) -> bool:
+		if fg.windowClassName in REMOTE_SHELL_CLASSES:
+			return True
+		if focus.windowClassName in REMOTE_SHELL_CLASSES:
+			return True
+		if (focus.appModule.appName == 'vmware-view' and (focus.windowClassName.startswith("ATL") or focus.windowClassName.startswith("VMware.Horizon.Client.Sdk:RemoteWindow"))):
+			return True
+
+		return False
+
 	def evaluate_remote_shell(self) -> None:
 		focus = api.getFocusObject()
 		fg = api.getForegroundObject()
-		if fg.windowClassName in REMOTE_SHELL_CLASSES or focus.windowClassName in REMOTE_SHELL_CLASSES or (focus.appModule.appName == 'vmware-view' and focus.windowClassName.startswith("ATL")):
+		if self.isRemoteShell(fg, focus):
 			self.rs_focused = True
 			wx.CallAfter(self.enter_remote_shell)
-		elif self.rs_focused and fg.windowClassName not in REMOTE_SHELL_CLASSES and focus.windowClassName not in REMOTE_SHELL_CLASSES and not (focus.appModule.appName == 'vmware-view' and focus.windowClassName.startswith("ATL")):
+		elif self.rs_focused and not self.isRemoteShell(fg, focus):
 			self.rs_focused = False
 			self.leave_remote_shell()
 
@@ -400,7 +410,8 @@ class GlobalPlugin(GlobalPlugin):
 		self.set_receiving_braille(True)
 
 	def leave_remote_shell(self) -> None:
-		self.set_receiving_braille(False)
+		if not conf['unicorn']['alwaysReceiveRemoteBraille']: 
+			self.set_receiving_braille(False)
 
 	def sd_on_master_display_change(self, **kwargs) -> None:
 		self.sd_relay.send(type='set_display_size', sizes=self.slave_session.master_display_sizes)
