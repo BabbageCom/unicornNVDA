@@ -1,3 +1,4 @@
+import gui
 import threading
 import time
 import queue
@@ -13,6 +14,7 @@ import core
 from typing import Union, Iterable, List
 from enum import Enum
 import speech.commands
+import traceback
 
 PROTOCOL_VERSION = 2
 #DVCTYPES = ('slave', 'master')
@@ -213,6 +215,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		if not self.initialized:
 			return
 		res = self.lib.Terminate()
+		self.callback_manager.call_callbacks('update_nvda_dialog', winError=1)
 		if res:
 			raise ctypes.WinError(res)
 		self.initialized = False
@@ -220,6 +223,8 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 	def run(self) -> None:
 		self.interrupt_event.clear()
 		res = self.lib.Open()
+		self.callback_manager.call_callbacks('update_applib_dialog', winError=res)
+		self.callback_manager.call_callbacks('update_plugin_dialog', winError=res)
 		if res >= 1 << 31:
 			raise OSError("Raised WinError %s out of range" % hex(res))
 		elif res in (1, 87):
@@ -301,6 +306,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 
 	def send(self, type: str, origin: int = -1, **kwargs) -> None:
 		obj = self.serializer.serialize(type=type, origin=origin, **kwargs)
+		log.debug(f"send: {obj}")
 		if self.connected:
 			self.queue.put(obj)
 
@@ -353,6 +359,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		log.info("DVC connection initiated from remote protocol server")
 		self.transport_connected()
 		self.send('protocol_version', version=self.protocol_version)
+		self.callback_manager.call_callbacks('update_plugin_dialog', winError=0)
 		return 0
 
 	def _OnDataReceived(self, cbSize: int, pBuffer: ctypes.POINTER(ctypes.wintypes.BYTE) ) -> int:

@@ -7,6 +7,8 @@ import watchdog
 import addonHandler
 from gui.settingsDialogs import SettingsPanel
 import config
+from . import callback_manager
+import traceback
 addonHandler.initTranslation()
 
 
@@ -15,29 +17,51 @@ class UnicornPanel(SettingsPanel):
 
 	def makeSettings(self, settingsSizer: wx.BoxSizer) -> None:
 		sizer_helper = gui.guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
-		self.autoConnectSlaveCheckBox = sizer_helper.addItem(
+		self.intermediateHelper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.HORIZONTAL)
+		self.LeftHelper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
+		self.RightHelper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
+		self.autoConnectSlaveCheckBox = self.LeftHelper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in server mode on startup"))
 		)
 		self.autoConnectSlaveCheckBox.Value = config.conf["unicorn"]["autoConnectServer"]
 
-		self.autoConnectMasterCheckBox = sizer_helper.addItem(
+		self.autoConnectMasterCheckBox = self.LeftHelper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in client mode on startup"))
 		)
 		self.autoConnectMasterCheckBox.Value = config.conf["unicorn"]["autoConnectClient"]
 		self.autoConnectMasterCheckBox.Enable(bool(unicorn.unicorn_client()))
 
-		self.alwaysReceiveRemoteBraille = sizer_helper.addItem(
+		self.alwaysReceiveRemoteBraille = self.LeftHelper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("always receive remote braille"))
 		)
 		self.alwaysReceiveRemoteBraille.Value = config.conf["unicorn"]["alwaysReceiveRemoteBraille"]
 		self.alwaysReceiveRemoteBraille.Enable(bool(unicorn.unicorn_client()))
 
-		self.cutOffLargeMesssagesCheckBox = sizer_helper.addItem(
+		self.cutOffLargeMesssagesCheckBox = self.LeftHelper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Cut-off messages above 5000 bytes"))
 		)
 		self.cutOffLargeMesssagesCheckBox.Value = config.conf["unicorn"]["limitMessageSize"]
 		self.cutOffLargeMesssagesCheckBox.Enable(bool(unicorn.unicorn_client()))
 
+		self.UnicornConnectionCCheckBox = self.RightHelper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label=_("Nvda connected to applib"))
+		)
+		self.UnicornConnectionCCheckBox.Value = config.conf["unicorn"]["nvdaApplib"]
+		
+		self.UnicornConnectionSCheckBox = self.RightHelper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label=_("Applib connected to plugin"))
+		)
+		self.UnicornConnectionSCheckBox.Value = config.conf["unicorn"]["applibPlugin"]
+
+		self.UnicornConnectionDCheckBox = self.RightHelper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label=_("Plugin connect to server applib"))
+		)
+		self.UnicornConnectionDCheckBox.Value = config.conf["unicorn"]["pluginApplibServer"]
+
+		self.intermediateHelper.addItem(self.LeftHelper, border = (1), flag=wx.ALL)
+		self.intermediateHelper.addItem(self.RightHelper, border = (1), flag=wx.ALL)
+		sizer_helper.addItem(self.intermediateHelper, border = (1), flag=wx.ALL)
+		
 		licenseButton = sizer_helper.addItem(wx.Button(self, label=_("Manage Unicorn license...")))
 		licenseButton.Bind(wx.EVT_BUTTON,self.onLicense)
 
@@ -50,6 +74,28 @@ class UnicornPanel(SettingsPanel):
 		config.conf["unicorn"]["autoConnectClient"] = self.autoConnectMasterCheckBox.Value
 		config.conf["unicorn"]["limitMessageSize"] = self.cutOffLargeMesssagesCheckBox.Value
 		config.conf["unicorn"]["alwaysReceiveRemoteBraille"] = self.alwaysReceiveRemoteBraille.Value
+	
+	def TransportAppLibDVCLog(self, winError):
+		log.error(f"TransportAppLibDVCLog called error {winError}")
+		config.conf["unicorn"]["applibPlugin"] = True
+  
+		if (winError == 1722 or winError == 1717):
+			config.conf["unicorn"]["applibPlugin"] = False
+		
+	def TransportNvdaAppLibDVCLog(self, winError):
+		log.error(f"TransportNvdaAppLibDVCLog called error {winError}")
+		config.conf["unicorn"]["nvdaApplib"] = True	
+  
+		if (winError != 0):
+			config.conf["unicorn"]["nvdaApplib"] = False	
+  
+	def TransportPluginAppLibDVCLog(self, winError):
+		log.error(f"TransportPluginAppLibDVCLog called error {winError}")
+		config.conf["unicorn"]["pluginApplibServer"] = True						
+  			
+		if (winError ==1722):
+			config.conf["unicorn"]["pluginApplibServer"] = False	
+
 
 
 class UnicornLicenseDialog(wx.Dialog):

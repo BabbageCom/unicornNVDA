@@ -175,11 +175,27 @@ class GlobalPlugin(GlobalPlugin):
 		transport.callback_manager.register_callback('transport_closing', self.disconnecting_as_master)
 		transport.callback_manager.register_callback('transport_disconnected', self.on_disconnected_as_master)
 		transport.callback_manager.register_callback('msg_client_joined', lambda **kwargs: self.evaluate_remote_shell())
+		transport.callback_manager.register_callback('update_plugin_dialog', self.on_transport_plugin_dialog)		
+		transport.callback_manager.register_callback('update_applib_dialog', self.on_transport_applib_dialog)		
+		transport.callback_manager.register_callback('update_nvda_dialog', self.on_transport_nvda_dialog)		
+		self.on_transport_nvda_dialog(0)
 		self.master_transport = transport
 		self.master_transport.reconnector_thread.start()
 		self.disconnect_master_item.Enable()
 		self.connect_master_item.Enable(False)
+  
+	def on_transport_plugin_dialog(self, winError):
+		log.warning(f"transportDialog: {winError}")
+		dialogs.UnicornPanel.TransportPluginAppLibDVCLog(self, winError)
 
+	def on_transport_applib_dialog(self, winError):
+		log.warning(f"transportDialog: {winError}")
+		dialogs.UnicornPanel.TransportAppLibDVCLog(self, winError)
+
+	def on_transport_nvda_dialog(self, winError):
+		log.warning(f"transportDialog: {winError}")
+		dialogs.UnicornPanel.TransportNvdaAppLibDVCLog(self, winError)
+    	
 	def connect_slave(self) -> None:
 		try:
 			maxBytes = conf['unicorn']['maxBytes'] if conf['unicorn']['limitMessageSize'] else 10 ** 9
