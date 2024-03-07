@@ -7,7 +7,6 @@ import sys
 from ctypes import *
 from ctypes.wintypes import *
 import enum
-from logHandler import log
 ARCHITECTURE=len(bin(sys.maxsize)[1:])
 
 class CTYPE(enum.IntEnum):
@@ -133,7 +132,6 @@ class Unicorn(object):
 		))
 
 	def Initialize(self):
-		log.debug(f"Connection type: {self.connectionType}")
 		return self.c_Initialize(self.connectionType)
 
 	def ActivateLicense(self, licenseKey):
@@ -147,19 +145,15 @@ class Unicorn(object):
 		return (success, message)
 
 	def Open(self):
-		log.debug("open has been called")
 		return self.c_Open(self.connectionType)
 
 	def Write(self, cbSize, pBuffer):
-		log.debug("Write has been called")
 		return self.c_Write(self.connectionType, cbSize, pBuffer)
 
 	def Close(self):
-		log.debug("close has been called")
 		return self.c_Close(self.connectionType)
 
 	def Terminate(self):
-		log.debug("terminate has been called")
 		return self.c_Terminate(self.connectionType)
 
 	def SetCallbacks(

@@ -1,4 +1,3 @@
-import gui
 import threading
 import time
 import queue
@@ -14,7 +13,6 @@ import core
 from typing import Union, Iterable, List
 from enum import Enum
 import speech.commands
-import traceback
 
 PROTOCOL_VERSION = 2
 #DVCTYPES = ('slave', 'master')
@@ -303,7 +301,6 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 
 	def send(self, type: str, origin: int = -1, **kwargs) -> None:
 		obj = self.serializer.serialize(type=type, origin=origin, **kwargs)
-		log.debug(f"send: {obj}")
 		if self.connected:
 			self.queue.put(obj)
 

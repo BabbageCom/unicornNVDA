@@ -7,65 +7,64 @@ import watchdog
 import addonHandler
 from gui.settingsDialogs import SettingsPanel
 import config
-from . import callback_manager
-import traceback
 addonHandler.initTranslation()
 
 
 class UnicornPanel(SettingsPanel):
 	title = _("UnicornDVC")
-	bServerSide = False
  
 	def makeSettings(self, settingsSizer: wx.BoxSizer) -> None:
 		sizer_helper = gui.guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
-		self.intermediateHelper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.HORIZONTAL)
-		self.LeftHelper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
-		self.RightHelper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
-		self.autoConnectSlaveCheckBox = self.LeftHelper.addItem(
+		self.intermediate_Horizontal_Helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.HORIZONTAL)
+		self.left_Helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
+		self.right_Helper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.VERTICAL)
+  
+		# Left hand side: unicorn settings readwrite
+		self.autoConnectSlaveCheckBox = self.left_Helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in server mode on startup"))
 		)
 		self.autoConnectSlaveCheckBox.Value = config.conf["unicorn"]["autoConnectServer"]
 
-		self.autoConnectMasterCheckBox = self.LeftHelper.addItem(
+		self.autoConnectMasterCheckBox = self.left_Helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Auto-connect in client mode on startup"))
 		)
 		self.autoConnectMasterCheckBox.Value = config.conf["unicorn"]["autoConnectClient"]
 		self.autoConnectMasterCheckBox.Enable(bool(unicorn.unicorn_client()))
 
-		self.alwaysReceiveRemoteBraille = self.LeftHelper.addItem(
+		self.alwaysReceiveRemoteBraille = self.left_Helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("always receive remote braille"))
 		)
 		self.alwaysReceiveRemoteBraille.Value = config.conf["unicorn"]["alwaysReceiveRemoteBraille"]
 		self.alwaysReceiveRemoteBraille.Enable(bool(unicorn.unicorn_client()))
 
-		self.cutOffLargeMesssagesCheckBox = self.LeftHelper.addItem(
+		self.cutOffLargeMesssagesCheckBox = self.left_Helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Cut-off messages above 5000 bytes"))
 		)
 		self.cutOffLargeMesssagesCheckBox.Value = config.conf["unicorn"]["limitMessageSize"]
 		self.cutOffLargeMesssagesCheckBox.Enable(bool(unicorn.unicorn_client()))
 
-		self.UnicornConnectionCCheckBox = self.RightHelper.addItem(
+		# Righ hand side: nvda-unicorn connection status. The checkboxes are readonly
+		self.nvdaconnectedCheckBox = self.right_Helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Nvda connected to applib"))
 		)
-		self.UnicornConnectionCCheckBox.Value = config.conf["unicorn"]["nvdaApplib"]
+		self.nvdaconnectedCheckBox.Value = config.conf["unicorn"]["nvdaToApplib"]
 		
-		self.UnicornConnectionSCheckBox = self.RightHelper.addItem(
+		self.applibConnectedCheckBox = self.right_Helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Applib connected to plugin"))
 		)
-		self.UnicornConnectionSCheckBox.Value = config.conf["unicorn"]["applibPlugin"]
+		self.applibConnectedCheckBox.Value = config.conf["unicorn"]["applibToPlugin"]
 
 		# Only needed for client side
-		self.bServerSide = config.conf["unicorn"]["bServerSide"]
-		if (self.bServerSide == False):
+		if (config.conf["unicorn"]["bServerSide"] == False):
 			log.error(f"SetServerSide called value: Made the checkbox")
-			self.UnicornConnectionDCheckBox = self.RightHelper.addItem(
+			self.pluginConnectedCheckbox = self.right_Helper.addItem(
 				wx.CheckBox(self, wx.ID_ANY, label= _("Plugin connected to server applib"))
 			)
-			self.UnicornConnectionDCheckBox.Value = config.conf["unicorn"]["pluginApplibServer"]
+			self.pluginConnectedCheckbox.Value = config.conf["unicorn"]["pluginToApplibServer"]
 
-		self.intermediateHelper.addItem(self.LeftHelper, border = (1), flag=wx.ALL)
-		self.intermediateHelper.addItem(self.RightHelper, border = (1), flag=wx.ALL)
-		sizer_helper.addItem(self.intermediateHelper, border = (1), flag=wx.ALL)
+		self.intermediate_Horizontal_Helper.addItem(self.left_Helper, border = (1), flag=wx.ALL)
+		self.intermediate_Horizontal_Helper.addItem(self.right_Helper, border = (1), flag=wx.ALL)
+		sizer_helper.addItem(self.intermediate_Horizontal_Helper, border = (1), flag=wx.ALL)
 		
 		licenseButton = sizer_helper.addItem(wx.Button(self, label=_("Manage Unicorn license...")))
 		licenseButton.Bind(wx.EVT_BUTTON,self.onLicense)
@@ -80,29 +79,26 @@ class UnicornPanel(SettingsPanel):
 		config.conf["unicorn"]["limitMessageSize"] = self.cutOffLargeMesssagesCheckBox.Value
 		config.conf["unicorn"]["alwaysReceiveRemoteBraille"] = self.alwaysReceiveRemoteBraille.Value
 	
-	def TransportAppLibDVCLog(self, winError):
-		log.error(f"TransportAppLibDVCLog called error {winError}")
-		config.conf["unicorn"]["applibPlugin"] = True
-  
-		if (winError == 1722 or winError == 2250 or winError == 31 or winError == 1 or winError == 21):
-			config.conf["unicorn"]["applibPlugin"] = False
-		
-	def TransportNvdaAppLibDVCLog(self, winError):
-		log.error(f"TransportNvdaAppLibDVCLog called error {winError}")
-		config.conf["unicorn"]["nvdaApplib"] = True	
-  
+ 
+	def connectionStatusFromNvdaChanged(self, winError):
 		if (winError != 0):
-			config.conf["unicorn"]["nvdaApplib"] = False	
-  
-	def TransportPluginAppLibDVCLog(self, winError):
-		log.error(f"TransportPluginAppLibDVCLog called error {winError}")
-		config.conf["unicorn"]["pluginApplibServer"] = True						
-  			
-		if (winError == 1722):
-			config.conf["unicorn"]["pluginApplibServer"] = False	
+			config.conf["unicorn"]["nvdaToApplib"] = False
+		else:
+			config.conf["unicorn"]["nvdaToApplib"] = True
 
-	def SetServerSide(self, isServerSide):
-		log.error(f"SetServerSide called value: {isServerSide}")
+	def connectionStatusFromApplibChanged(self, winError):
+		if (winError == 1722 or winError == 2250 or winError == 31 or winError == 1 or winError == 21):
+			config.conf["unicorn"]["applibToPlugin"] = False
+		else:	
+			config.conf["unicorn"]["applibToPlugin"] = True
+
+	def connectionStatusFromPluginChanged(self, winError):
+		if (winError == 1722):
+			config.conf["unicorn"]["pluginToApplibServer"] = False	
+		else:
+			config.conf["unicorn"]["pluginToApplibServer"] = True
+
+	def setIsServerSide(self, isServerSide):
 		if(isServerSide == True):
 			config.conf["unicorn"]["bServerSide"] = True						
 		else:
