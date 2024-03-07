@@ -14,6 +14,7 @@ import api
 import ssl
 import json
 import versionInfo
+import winAPI.secureDesktop
 import wx
 import gui
 from logHandler import log
@@ -91,6 +92,14 @@ class GlobalPlugin(GlobalPlugin):
 		self.rs_focused = False
 		if versionInfo.version_year >= 2023:
 			braille.decide_enabled.register(self.local_machine.handle_decide_enabled)
+		winAPI.secureDesktop.post_secureDesktopStateChange.register(self.onSecureDesktopChange)
+  
+
+	def onSecureDesktopChange(self, isSecureDesktop: bool):
+		if isSecureDesktop:
+			self.enter_secure_desktop()
+			return
+		self.leave_secure_desktop()
 
 	def initializeConfig(self) -> None:
 		if "unicorn" not in conf:
@@ -138,6 +147,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.submenu_item = gui.mainFrame.sysTrayIcon.menu.Insert(2, wx.ID_ANY, _("UnicornDVC"), self.menu)
 
 	def terminate(self) -> None:
+		winAPI.secureDesktop.post_secureDesktopStateChange.unregister(self.onSecureDesktopChange)
 		if versionInfo.version_year >= 2023:
 			braille.decide_enabled.unregister(self.local_machine.handle_decide_enabled)
 		self.disconnect()
@@ -225,7 +235,7 @@ class GlobalPlugin(GlobalPlugin):
 			self.disconnect_slave()
 
 	def disconnect_master(self) -> None:
-		self.callback_manager.call_callbacks('transport_disconnect', connection_type = unicorn.CTYPE.CLIENT)
+		self.callback_manager.call_callbacks('transport_disconnected', connection_type = unicorn.CTYPE.CLIENT)
 		self.master_transport.close()
 		self.master_transport = None
 		self.master_session = None
@@ -244,7 +254,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.sending_keys = False
 
 	def disconnect_slave(self) -> None:
-		self.callback_manager.call_callbacks('transport_disconnect', connection_type = unicorn.CTYPE.SERVER)
+		self.callback_manager.call_callbacks('transport_disconnected', connection_type = unicorn.CTYPE.SERVER)
 		self.slave_transport.close()
 		self.slave_transport = None
 		self.slave_session = None
@@ -263,18 +273,19 @@ class GlobalPlugin(GlobalPlugin):
 
 	def on_connected_as_master(self) -> None:
 		self.mute_item.Enable(True)
-		self.callback_manager.call_callbacks('transport_connect', connection_type= unicorn.CTYPE.CLIENT, transport=self.master_transport)
+		self.callback_manager.call_callbacks('transport_connected', connection_type= unicorn.CTYPE.CLIENT, transport=self.master_transport)
 		self.evaluate_remote_shell()
 		ui.message(_("Connected in client mode!"), speechPriority=speech.priorities.Spri.NOW)
 		beep_sequence.beep_sequence_async((440, 60), (660, 60))
 
 	def on_disconnected_as_master(self) -> None:
 		# Translators: Presented when connection to a remote computer was interupted.
-		ui.message(_("Connection as client interrupted"), speechPriority=speech.priorities.Spri.NOW)
+		ui.message(_("Connection as client interrupted"), speechPriority=speech.priorities.Spri.NOW)	
+		self.callback_manager.call_callbacks('transport_disconnected')
 
 	def on_connected_as_slave(self) -> None:
 		log.info("Connected DVC in server mode")
-		self.callback_manager.call_callbacks('transport_connect', connection_type = unicorn.CTYPE.SERVER, transport=self.slave_transport)
+		self.callback_manager.call_callbacks('transport_connected', connection_type = unicorn.CTYPE.SERVER, transport=self.slave_transport)
 		ui.message(_("Connected in server mode!"), speechPriority=speech.priorities.Spri.NOW)
 
 	def isRemoteShell(self, fg, focus) -> bool:
@@ -377,13 +388,6 @@ class GlobalPlugin(GlobalPlugin):
 			self.local_machine.receiving_braille=False
 
 	def event_gainFocus(self, obj: NVDAObjects.NVDAObject, nextHandler: Callable) -> None:
-		if isinstance(obj, IAccessibleHandler.SecureDesktopNVDAObject):
-			self.sd_focused = True
-			self.enter_secure_desktop()
-		elif self.sd_focused and not isinstance(obj, IAccessibleHandler.SecureDesktopNVDAObject):
-			#event_leaveFocus won't work for some reason
-			self.sd_focused = False
-			self.leave_secure_desktop()
 		self.evaluate_remote_shell()
 		nextHandler()
 

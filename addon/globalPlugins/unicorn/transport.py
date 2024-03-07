@@ -235,7 +235,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self.queue_thread.daemon = True
 		self.queue_thread.start()
 		self.interrupt_event.wait()
-		self.callback_manager.call_callbacks('transport_disconnected')
+		
 		self._disconnect()
 
 	def handle_data(self, string: str) -> None:
@@ -255,6 +255,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 	def parse(self, line):
 		# deserialize object needs the transporter for callback commands. If there is a sequence with a callback command
 		# it should be able to directly call the send method of the transporter.
+		log.io(line)
 		obj = self.serializer.deserialize(line)
 		if 'type' not in obj:
 			return
@@ -301,10 +302,13 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 
 	def send(self, type: str, origin: int = -1, **kwargs) -> None:
 		obj = self.serializer.serialize(type=type, origin=origin, **kwargs)
+		log.io(obj)
 		if self.connected:
 			self.queue.put(obj)
 
 	def _disconnect(self) -> None:
+		log.warning("Unicorn: _disconnect")
+		self.callback_manager.call_callbacks('transport_disconnected')
 		if not self.connected and not self.opened:
 			return
 		self.interrupt_event.set()

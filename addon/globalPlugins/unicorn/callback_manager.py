@@ -1,5 +1,4 @@
-from logging import getLogger
-logger = getLogger('callback_manager')
+from logHandler import log
 import wx
 from collections import defaultdict
 from typing import Callable
