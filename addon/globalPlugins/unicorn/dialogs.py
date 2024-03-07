@@ -9,6 +9,26 @@ from gui.settingsDialogs import SettingsPanel
 import config
 addonHandler.initTranslation()
 
+class ConnectionStateHandler():
+	def statusNvdaToApplibChanged(self, winError):
+		if (winError != 0):
+			self.nvdaToApplib = False
+		else:
+			self.nvdaToApplib = True
+
+	def statusApplibToPluginChanged(self, winError):
+		if (winError == 1722 or winError == 2250 or winError == 31 or winError == 1 or winError == 21):
+			self.applibToPlugin = False
+		else:	
+			self.applibToPlugin = True
+
+	def statusPluginToApplibChanged(self, winError):
+		if (winError == 1722):
+			self.pluginToApplibServer = False
+		else:
+			self.pluginToApplibServer = True
+
+Conn_State_Handler = ConnectionStateHandler()
 
 class UnicornPanel(SettingsPanel):
 	title = _("UnicornDVC")
@@ -43,16 +63,22 @@ class UnicornPanel(SettingsPanel):
 		self.cutOffLargeMesssagesCheckBox.Value = config.conf["unicorn"]["limitMessageSize"]
 		self.cutOffLargeMesssagesCheckBox.Enable(bool(unicorn.unicorn_client()))
 
-		# Righ hand side: nvda-unicorn connection status. The checkboxes are readonly
+		licenseButton = self.left_Helper.addItem(wx.Button(self, label=_("Manage Unicorn license...")))
+		licenseButton.Bind(wx.EVT_BUTTON,self.onLicense)
+  
+		# Right hand side: nvda-unicorn connection status. The checkboxes are readonly
+		global Conn_State_Handler
 		self.nvdaconnectedCheckBox = self.right_Helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Nvda connected to applib"))
 		)
-		self.nvdaconnectedCheckBox.Value = config.conf["unicorn"]["nvdaToApplib"]
+		self.nvdaconnectedCheckBox.Value = Conn_State_Handler.nvdaToApplib
+		self.nvdaconnectedCheckBox.Enable(False)
 		
 		self.applibConnectedCheckBox = self.right_Helper.addItem(
 			wx.CheckBox(self, wx.ID_ANY, label=_("Applib connected to plugin"))
 		)
-		self.applibConnectedCheckBox.Value = config.conf["unicorn"]["applibToPlugin"]
+		self.applibConnectedCheckBox.Value = Conn_State_Handler.applibToPlugin
+		self.applibConnectedCheckBox.Enable(False)
 
 		# Only needed for client side
 		if (config.conf["unicorn"]["bServerSide"] == False):
@@ -60,14 +86,22 @@ class UnicornPanel(SettingsPanel):
 			self.pluginConnectedCheckbox = self.right_Helper.addItem(
 				wx.CheckBox(self, wx.ID_ANY, label= _("Plugin connected to server applib"))
 			)
-			self.pluginConnectedCheckbox.Value = config.conf["unicorn"]["pluginToApplibServer"]
+			self.pluginConnectedCheckbox.Value = Conn_State_Handler.pluginToApplibServer
+			self.pluginConnectedCheckbox.Enable(False)
 
+		self.Timer = wx.Timer(self)
+		self.Bind(wx.EVT_TIMER, self.updateConnectionStatuses, self.Timer)
+		self.Timer.Start(500)
+  
 		self.intermediate_Horizontal_Helper.addItem(self.left_Helper, border = (1), flag=wx.ALL)
 		self.intermediate_Horizontal_Helper.addItem(self.right_Helper, border = (1), flag=wx.ALL)
 		sizer_helper.addItem(self.intermediate_Horizontal_Helper, border = (1), flag=wx.ALL)
-		
-		licenseButton = sizer_helper.addItem(wx.Button(self, label=_("Manage Unicorn license...")))
-		licenseButton.Bind(wx.EVT_BUTTON,self.onLicense)
+   
+	def updateConnectionStatuses(self, evt):
+		global Conn_State_Handler
+		self.nvdaconnectedCheckBox.Value   = Conn_State_Handler.nvdaToApplib
+		self.applibConnectedCheckBox.Value = Conn_State_Handler.applibToPlugin
+		self.pluginConnectedCheckbox.Value = Conn_State_Handler.pluginToApplibServer
 
 	def onLicense(self, evt) -> None:
 		with UnicornLicenseDialog(self) as dlg:
@@ -78,30 +112,10 @@ class UnicornPanel(SettingsPanel):
 		config.conf["unicorn"]["autoConnectClient"] = self.autoConnectMasterCheckBox.Value
 		config.conf["unicorn"]["limitMessageSize"] = self.cutOffLargeMesssagesCheckBox.Value
 		config.conf["unicorn"]["alwaysReceiveRemoteBraille"] = self.alwaysReceiveRemoteBraille.Value
+		self.Timer.Stop()
 	
-	def connectionStatusFromNvdaChanged(self, winError):
-		if (winError != 0):
-			config.conf["unicorn"]["nvdaToApplib"] = False
-		else:
-			config.conf["unicorn"]["nvdaToApplib"] = True
-
-	def connectionStatusFromApplibChanged(self, winError):
-		if (winError == 1722 or winError == 2250 or winError == 31 or winError == 1 or winError == 21):
-			config.conf["unicorn"]["applibToPlugin"] = False
-		else:	
-			config.conf["unicorn"]["applibToPlugin"] = True
-
-	def connectionStatusFromPluginChanged(self, winError):
-		if (winError == 1722):
-			config.conf["unicorn"]["pluginToApplibServer"] = False	
-		else:
-			config.conf["unicorn"]["pluginToApplibServer"] = True
-
-	def setIsServerSide(self, isServerSide):
-		if(isServerSide == True):
-			config.conf["unicorn"]["bServerSide"] = True						
-		else:
-			config.conf["unicorn"]["bServerSide"] = False
+	def onDiscard(self):
+		self.Timer.Stop()
 
 class UnicornLicenseDialog(wx.Dialog):
 
