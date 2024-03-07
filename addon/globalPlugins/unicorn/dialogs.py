@@ -79,7 +79,6 @@ class UnicornPanel(SettingsPanel):
 		config.conf["unicorn"]["limitMessageSize"] = self.cutOffLargeMesssagesCheckBox.Value
 		config.conf["unicorn"]["alwaysReceiveRemoteBraille"] = self.alwaysReceiveRemoteBraille.Value
 	
- 
 	def connectionStatusFromNvdaChanged(self, winError):
 		if (winError != 0):
 			config.conf["unicorn"]["nvdaToApplib"] = False

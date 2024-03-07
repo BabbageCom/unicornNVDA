@@ -7,6 +7,5 @@ configSpec = {
 	'nvdaToApplib': 'boolean(default=False)',
 	'applibToPlugin': 'boolean(default=False)',
 	'pluginToApplibServer': 'boolean(default=False)',
-	'bServerSide': 'boolean(default=False)',
-	'lastError': 'integer(default=0)'
+	'bServerSide': 'boolean(default=False)'
 }
