@@ -178,6 +178,7 @@ class GlobalPlugin(GlobalPlugin):
 		transport.callback_manager.register_callback('update_plugin_dialog', self.on_transport_plugin_dialog)		
 		transport.callback_manager.register_callback('update_applib_dialog', self.on_transport_applib_dialog)		
 		transport.callback_manager.register_callback('update_nvda_dialog', self.on_transport_nvda_dialog)		
+		dialogs.UnicornPanel.SetServerSide(self, False)
 		self.on_transport_nvda_dialog(0)
 		self.master_transport = transport
 		self.master_transport.reconnector_thread.start()
@@ -207,6 +208,10 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_transport = transport
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_connected_as_slave)
 		self.slave_transport.callback_manager.register_callback('msg_set_braille_info', self.send_braille_info_to_master)
+		self.slave_transport.callback_manager.register_callback('update_applib_dialog', self.on_transport_applib_dialog)		
+		self.slave_transport.callback_manager.register_callback('update_nvda_dialog', self.on_transport_nvda_dialog)		
+		self.on_transport_nvda_dialog(0)
+		dialogs.UnicornPanel.SetServerSide(self, True)
 		self.slave_transport.reconnector_thread.start()
 		self.disconnect_slave_item.Enable()
 		self.connect_slave_item.Enable(False)

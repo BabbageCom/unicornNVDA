@@ -14,7 +14,8 @@ addonHandler.initTranslation()
 
 class UnicornPanel(SettingsPanel):
 	title = _("UnicornDVC")
-
+	bServerSide = False
+ 
 	def makeSettings(self, settingsSizer: wx.BoxSizer) -> None:
 		sizer_helper = gui.guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
 		self.intermediateHelper = gui.guiHelper.BoxSizerHelper(self, orientation=wx.HORIZONTAL)
@@ -53,10 +54,14 @@ class UnicornPanel(SettingsPanel):
 		)
 		self.UnicornConnectionSCheckBox.Value = config.conf["unicorn"]["applibPlugin"]
 
-		self.UnicornConnectionDCheckBox = self.RightHelper.addItem(
-			wx.CheckBox(self, wx.ID_ANY, label=_("Plugin connect to server applib"))
-		)
-		self.UnicornConnectionDCheckBox.Value = config.conf["unicorn"]["pluginApplibServer"]
+		# Only needed for client side
+		self.bServerSide = config.conf["unicorn"]["bServerSide"]
+		if (self.bServerSide == False):
+			log.error(f"SetServerSide called value: Made the checkbox")
+			self.UnicornConnectionDCheckBox = self.RightHelper.addItem(
+				wx.CheckBox(self, wx.ID_ANY, label= _("Plugin connected to server applib"))
+			)
+			self.UnicornConnectionDCheckBox.Value = config.conf["unicorn"]["pluginApplibServer"]
 
 		self.intermediateHelper.addItem(self.LeftHelper, border = (1), flag=wx.ALL)
 		self.intermediateHelper.addItem(self.RightHelper, border = (1), flag=wx.ALL)
@@ -79,7 +84,7 @@ class UnicornPanel(SettingsPanel):
 		log.error(f"TransportAppLibDVCLog called error {winError}")
 		config.conf["unicorn"]["applibPlugin"] = True
   
-		if (winError == 1722 or winError == 1717):
+		if (winError == 1722 or winError == 2250 or winError == 31 or winError == 1 or winError == 21):
 			config.conf["unicorn"]["applibPlugin"] = False
 		
 	def TransportNvdaAppLibDVCLog(self, winError):
@@ -93,10 +98,15 @@ class UnicornPanel(SettingsPanel):
 		log.error(f"TransportPluginAppLibDVCLog called error {winError}")
 		config.conf["unicorn"]["pluginApplibServer"] = True						
   			
-		if (winError ==1722):
+		if (winError == 1722):
 			config.conf["unicorn"]["pluginApplibServer"] = False	
 
-
+	def SetServerSide(self, isServerSide):
+		log.error(f"SetServerSide called value: {isServerSide}")
+		if(isServerSide == True):
+			config.conf["unicorn"]["bServerSide"] = True						
+		else:
+			config.conf["unicorn"]["bServerSide"] = False
 
 class UnicornLicenseDialog(wx.Dialog):
 

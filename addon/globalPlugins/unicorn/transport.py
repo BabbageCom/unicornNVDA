@@ -18,11 +18,9 @@ import traceback
 
 PROTOCOL_VERSION = 2
 #DVCTYPES = ('slave', 'master')
-
 class DVCTYPES(Enum):
 	slave = "slave"
 	master = "master"
-
 
 class Transport:
 
@@ -153,7 +151,6 @@ class TCPTransport(Transport):
 		self.closed = True
 		self.reconnector_thread = ConnectorThread(self)
 
-
 class RelayTransport(TCPTransport):
 
 	def __init__(self, serializer, address, timeout=0, channel=None, connection_type=None, protocol_version=PROTOCOL_VERSION):
@@ -170,7 +167,6 @@ class RelayTransport(TCPTransport):
 			self.send('join', channel=self.channel, connection_type=self.connection_type)
 		else:
 			self.send('generate_key')
-
 
 class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 
@@ -216,6 +212,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 			return
 		res = self.lib.Terminate()
 		self.callback_manager.call_callbacks('update_nvda_dialog', winError=1)
+		self.callback_manager.call_callbacks('update_applib_dialog', winError=1)
 		if res:
 			raise ctypes.WinError(res)
 		self.initialized = False
@@ -331,6 +328,9 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self._disconnect()
 		# Terminating in this context is the equivalent for closing the transport
 		res = self.terminate_lib()
+		self.callback_manager.call_callbacks('update_applib_dialog', winError=1)
+		self.callback_manager.call_callbacks('update_plugin_dialog', winError=1)
+  
 		if res:
 			raise ctypes.WinError(res)
 		self.reconnector_thread = ConnectorThread(self, run_except=EnvironmentError)
@@ -411,7 +411,6 @@ class ConnectorThread(threading.Thread):
 			else:
 				time.sleep(self.connect_delay)
 		log.info("Ending control connector thread %s" % self.name)
-
 
 def clear_queue(queue: queue.Queue) -> None:
 	try:

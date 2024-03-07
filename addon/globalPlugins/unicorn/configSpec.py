@@ -8,5 +8,6 @@ configSpec = {
 	'applibPlugin': 'boolean(default=False)',
 	'pluginApplibServer': 'boolean(default=False)',
 	'applibNvdaServer': 'boolean(default=False)',
+	'bServerSide': 'boolean(default=False)',
 	'lastError': 'integer(default=0)'
 }

@@ -1,5 +1,4 @@
 @echo off
 
 py -m SCons
-
-unicornNVDA_2023.2.nvda-addon
+unicornNVDA_BETA_2024.1.nvda-addon
