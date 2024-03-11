@@ -188,7 +188,7 @@ class GlobalPlugin(GlobalPlugin):
 		transport.callback_manager.register_callback('update_plugin_dialog', self.on_connection_status_plugin_changed)		
 		transport.callback_manager.register_callback('update_applib_dialog', self.on_connection_status_appllib_changed)		
 		transport.callback_manager.register_callback('update_nvda_dialog', self.on_connection_status_nvda_changed)		
-		dialogs.UnicornPanel.setIsServerSide(self, False)
+		conf["unicorn"]["bServerSide"] = False						
 		self.on_connection_status_nvda_changed(0)
 		self.master_transport = transport
 		self.master_transport.reconnector_thread.start()
@@ -209,20 +209,20 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_transport.callback_manager.register_callback('update_applib_dialog', self.on_connection_status_appllib_changed)		
 		self.slave_transport.callback_manager.register_callback('update_nvda_dialog', self.on_connection_status_nvda_changed)		
 		self.on_connection_status_nvda_changed(0)
-		dialogs.UnicornPanel.setIsServerSide(self, True)
+		conf["unicorn"]["bServerSide"] = True						
 		self.slave_transport.reconnector_thread.start()
 		self.disconnect_slave_item.Enable()
 		self.connect_slave_item.Enable(False)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_slave_failed)
 
 	def on_connection_status_nvda_changed(self, winError):
-		dialogs.UnicornPanel.connectionStatusFromNvdaChanged(self, winError)
+		dialogs.Conn_State_Handler.statusNvdaToApplibChanged(winError)
 
 	def on_connection_status_appllib_changed(self, winError):
-		dialogs.UnicornPanel.connectionStatusFromApplibChanged(self, winError)
+		dialogs.Conn_State_Handler.statusApplibToPluginChanged(winError)
 
 	def on_connection_status_plugin_changed(self, winError):
-		dialogs.UnicornPanel.connectionStatusFromPluginChanged(self, winError)
+		dialogs.Conn_State_Handler.statusPluginToApplibChanged(winError)
     		
 	def send_braille_info_to_master(self, *args, **kwargs) -> None:
 		if self.master_session:
