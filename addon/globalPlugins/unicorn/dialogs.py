@@ -10,6 +10,10 @@ import config
 addonHandler.initTranslation()
 
 class ConnectionStateHandler():
+	applibToPlugin = False
+	nvdaToApplib = False
+	pluginToApplibServer = False
+ 
 	def statusNvdaToApplibChanged(self, winError):
 		if (winError != 0):
 			self.nvdaToApplib = False
