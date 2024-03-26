@@ -16,11 +16,9 @@ import speech.commands
 
 PROTOCOL_VERSION = 2
 #DVCTYPES = ('slave', 'master')
-
 class DVCTYPES(Enum):
 	slave = "slave"
 	master = "master"
-
 
 class Transport:
 
@@ -151,7 +149,6 @@ class TCPTransport(Transport):
 		self.closed = True
 		self.reconnector_thread = ConnectorThread(self)
 
-
 class RelayTransport(TCPTransport):
 
 	def __init__(self, serializer, address, timeout=0, channel=None, connection_type=None, protocol_version=PROTOCOL_VERSION):
@@ -168,7 +165,6 @@ class RelayTransport(TCPTransport):
 			self.send('join', channel=self.channel, connection_type=self.connection_type)
 		else:
 			self.send('generate_key')
-
 
 class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 
@@ -213,6 +209,8 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		if not self.initialized:
 			return
 		res = self.lib.Terminate()
+		self.callback_manager.call_callbacks('update_nvda_dialog', winError=1)
+		self.callback_manager.call_callbacks('update_applib_dialog', winError=1)
 		if res:
 			raise ctypes.WinError(res)
 		self.initialized = False
@@ -220,6 +218,8 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 	def run(self) -> None:
 		self.interrupt_event.clear()
 		res = self.lib.Open()
+		self.callback_manager.call_callbacks('update_applib_dialog', winError=res)
+		self.callback_manager.call_callbacks('update_plugin_dialog', winError=res)
 		if res >= 1 << 31:
 			raise OSError("Raised WinError %s out of range" % hex(res))
 		elif res in (1, 87):
@@ -329,6 +329,9 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		self._disconnect()
 		# Terminating in this context is the equivalent for closing the transport
 		res = self.terminate_lib()
+		self.callback_manager.call_callbacks('update_applib_dialog', winError=1)
+		self.callback_manager.call_callbacks('update_plugin_dialog', winError=1)
+  
 		if res:
 			raise ctypes.WinError(res)
 		self.reconnector_thread = ConnectorThread(self, run_except=EnvironmentError)
@@ -357,6 +360,7 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		log.info("DVC connection initiated from remote protocol server")
 		self.transport_connected()
 		self.send('protocol_version', version=self.protocol_version)
+		self.callback_manager.call_callbacks('update_plugin_dialog', winError=0)
 		return 0
 
 	def _OnDataReceived(self, cbSize: int, pBuffer: ctypes.POINTER(ctypes.wintypes.BYTE) ) -> int:
@@ -408,7 +412,6 @@ class ConnectorThread(threading.Thread):
 			else:
 				time.sleep(self.connect_delay)
 		log.info("Ending control connector thread %s" % self.name)
-
 
 def clear_queue(queue: queue.Queue) -> None:
 	try:
