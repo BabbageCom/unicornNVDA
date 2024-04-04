@@ -1,0 +1,78 @@
+@startuml Session Interaction Diagram
+Session.DVCTransport <-- Session.RemoteSession : "done by MasterSession/SlaveSession"
+GlobalPlugin *-- Session.RemoteSession
+LocalMachine <-- Session.CallbackManager : "Sends callbacks to"
+Session.Client.NVDAMasterPatcher <-- Session.CallbackManager : "Sends callbacks to"
+Session.Server.NVDASlavePatcher <-- Session.CallbackManager : "Sends callbacks to"
+Session.CallbackManager <-- Session.DVCTransport : "Sends callbacks to"
+Session.RemoteSession <|-- Session.Client.MasterSession : "master created if server side"
+Session.RemoteSession <|-- Session.Server.SlaveSession : "slave created if server side"
+
+class GlobalPlugin{
+    DVCTransport: master_transport || slave_transport
+    local_machine: local_machine
+    RemoteSettings: SlaveSession || MasterSession
+    connect_slave()
+    connect_master()
+    set_receiving_braille()
+    send_braille_info_to_master()
+}
+
+class Session.DVCTransport
+{
+    CallbackManager: callback_manager
+    Run()
+    send_queue()
+    parse()
+}
+
+Abstract Session.RemoteSession{
+    DVCTransport: master_transport || slave_transport
+    local_machine: local_machine
+    NVDAPatcher: patcher
+}
+
+class Session.Server.SlaveSession{
+    NVDASlavePatcher: patcher
+    handle_braille_info()
+    add_patch_callbacks()
+    remove_patch_callbacks()
+    display()
+    speak()
+}
+
+class Session.Client.MasterSession{
+    NVDAMasterPatcher: patcher
+    braille_input()
+    send_braille_info()
+    add_patch_callbacks()
+    remove_patch_callbacks()
+}
+
+class LocalMachine{
+    speak()
+    braille_input()
+    set_braille_display_size()
+    display()
+}
+
+class Session.Client.NVDAMasterPatcher{
+    patch_braille_input()
+    patch() - > patch_set_display()
+    executeGesture()
+}
+
+class Session.Server.NVDASlavePatcher{
+    speak()
+    beep()
+    display()
+}
+
+class Session.CallbackManager{
+    msg_speak()
+    msg_cancel()
+    msg_tone()
+    msg_wave()
+    msg_display()
+}
+@enduml

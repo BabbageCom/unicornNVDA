@@ -1,0 +1,46 @@
+@startuml Setup Connection Sequence Diagram
+title Setup Connection between client and server 
+skinparam BoxPadding 40
+skinparam ParticipantPadding 20
+box Server Side
+participant Nvda_Server
+participant Applib_Server
+end box
+
+box RDP
+participant RDP_Framework_Terminal_Services_Client
+end box
+
+box Client Side
+participant Plugin
+participant Applib_Client
+participant Nvda_Client
+end box
+
+loop until connected
+    Nvda_Server -> Applib_Server: Open()
+    Applib_Server -> RDP_Framework_Terminal_Services_Client: PTR_VirtualChannelOpenEx()
+    RDP_Framework_Terminal_Services_Client -> Plugin: TerminalOnNewChannelConnection()
+        alt "Fails in TerminalOnNewChannelConnection()"
+            RDP_Framework_Terminal_Services_Client --> Applib_Server: Result
+            Applib_Server --> Nvda_Server: Result
+        else "Suceeds in TerminalOnNewChannelConnection()"
+            Plugin -> Applib_Client: OnNewChannelConnection()
+            Applib_Client -> Nvda_Client: OnNewChannelConnection()
+            Nvda_Client -> Nvda_Client: transport_connected()
+            Nvda_Client --> Applib_Client: Result
+            Applib_Client --> Plugin: Result
+            Plugin --> RDP_Framework_Terminal_Services_Client: Result
+            RDP_Framework_Terminal_Services_Client --> Applib_Server: Result
+            Applib_Server --> Nvda_Server: Result
+        end
+end
+loop "Client checking for connection"
+    Nvda_Client --> Applib_Client: Open
+    note right: "Happens asynchronously from the Server's Open()"
+    Applib_Client --> Plugin: Open 
+    note left: "Needs TerminalOnNewChannelConnection() to have succeeded"
+    Plugin -> Applib_Client: Result
+    Applib_Client -> Nvda_Client: Result
+end
+@enduml
