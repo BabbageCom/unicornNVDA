@@ -1,0 +1,104 @@
+@startuml UnicornNVDA Class Diagram
+GlobalPlugin "1" *-- "1" DVCTransport : "has"
+UnicornCallbackHandler <|-- DVCTransport
+DVCTransport "1" *-- "1" Unicorn : "has"
+DVCTransport "1" *-- "1" callback_manager : "assigned to by GlobalPlugin"
+GlobalPlugin "1" *-- "1" RemoteSession : "has"
+RemoteSession <|-- Server.SlaveSession : "SlaveSession created if server side"
+RemoteSession <|-- Client.MasterSession : "MasterSession created if client side"
+RemoteSession "1" *-- "1" local_machine : "assigned to by GlobalPlugin"
+RemoteSession "1" *-- "1" NVDAPatcher : "has"
+NVDAPatcher <|-- Client.NVDAMasterPatcher
+NVDAPatcher <|-- Server.NVDASlavePatcher
+
+class GlobalPlugin{
+    DVCTransport: master_transport || slave_transport
+    local_machine: local_machine
+    RemoteSettings: SlaveSession || MasterSession
+    connect_slave()
+    connect_master()
+    on_connection_status()
+    on_connected_as_slave()
+    on_connected_as_master()
+}
+
+class Unicorn{
+    registerCallbacks()
+    registerFunctions()
+    Open()
+    Write()
+}
+
+class DVCTransport
+{
+    CallbackManager: callback_manager
+    Unicorn: lib
+    Run()
+    send_queue()
+    _OnNewChannelConnection()
+    _OnDataReceived()
+}
+
+class UnicornCallbackHandler{
+    Open()
+    Write()
+    _OnNewChannelConnection()
+    _OnDataReceived()
+}
+
+Abstract RemoteSession{
+    DVCTransport: master_transport || slave_transport
+    local_machine: local_machine
+    NVDAPatcher: patcher
+    bool: patch_callbacks_added
+}
+
+class Server.SlaveSession{
+    NVDASlavePatcher: patcher
+    handle_braille_info()
+    add_patch_callbacks()
+    remove_patch_callbacks()
+    display()
+    speak()
+}
+
+class Client.MasterSession{
+    NVDAMasterPatcher: patcher
+    braille_input()
+    send_braille_info()
+    add_patch_callbacks()
+    remove_patch_callbacks()
+}
+
+class local_machine{
+    bool: is_muted
+    bool: receiving_braille
+    bool: _cached_sizes
+    speak()
+    braille_input()
+    set_braille_display_size()
+    display()
+}
+
+class NVDAPatcher{
+    handle_displayChanged()
+    handle_displaySizeChanged()
+}
+
+class Client.NVDAMasterPatcher{
+    patch_braille_input()
+    executeGesture()
+}
+
+class Server.NVDASlavePatcher{
+    speak()
+    beep()
+    display()
+}
+
+class callback_manager{
+    register_callback()
+    unregister_callback()
+    call_callbacks()
+}
+@enduml

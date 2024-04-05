@@ -1,0 +1,91 @@
+@startuml Transport Interaction Diagram
+
+CallbackManager <-- DVCTransport : "Sends callbacks to"
+GlobalPlugin <-- CallbackManager : "Sends callbacks to"
+DVCTransport <-- unicorn.UnicornCallbackHandler : "Sends callbacks to"
+unicorn.UnicornCallbackHandler <-- unicorn.AppLib : "Sends callbacks to"
+unicorn.AppLib <-- unicorn.Unicorn : "Sends callbacks to"
+DVCTransport::Run --> unicorn.Unicorn::Open : "Sends callbacks to"
+
+class GlobalPlugin{
+    DVCTransport: master_transport || slave_transport
+    connect_slave()
+    connect_master()
+
+    transport_connection_in_trial_mode()
+    transport_connected()
+    transport_connection_failed()
+    transport_closing()
+    transport_disconnected()
+    transport_trial_expired()
+    msg_client_joined()
+    msg_client_left()
+}
+
+class DVCTransport
+{
+    CallbackManager: callback_manager
+    Unicorn: lib
+    unicorn.CTYPE: connection_type
+    Run()
+    send_queue()
+    _Connected()
+    _Disconnected()
+    _Terminated()
+    _OnNewChannelConnection()
+    _OnDataReceived()
+    _OnReadError()
+    _OnClose()
+    _OnTrial()
+    _OnTrialExpired()
+}
+
+class unicorn.Unicorn{
+    registerCallbacks()
+    registerFunctions()
+    Open()
+    Write()
+    Close()
+    Terminate()
+}
+
+class unicorn.UnicornCallbackHandler{
+    _Connected()
+    _Disconnected()
+    _Terminated()
+    _OnNewChannelConnection()
+    _OnDataReceived()
+    _OnReadError()
+    _OnClose()
+    _OnTrial()
+    _OnTrialExpired()
+}
+
+class CallbackManager{
+    transport_connection_in_trial_mode()
+    transport_connected()
+    transport_connection_failed()
+    transport_closing()
+    transport_disconnected()
+    transport_trial_expired()
+    msg_client_joined()
+    msg_client_left()
+}
+
+class unicorn.AppLib{
+    Unicorn_Open()
+    Unicorn_Write()
+    Unicorn_Close()
+    Unicorn_Terminate()
+    
+    Unicorn_Connected()
+    Unicorn_Disconnected()
+    Unicorn_Terminated()
+    Unicorn_OnNewChannelConnection()
+    Unicorn_OnDataReceived()
+    Unicorn_OnReadError()
+    Unicorn_OnClose()
+    Unicorn_OnTrial()
+    Unicorn_OnTrialExpired()
+}
+@enduml

@@ -1,0 +1,74 @@
+@startuml Send Speak Sequence Diagram
+title Process of sending speach from server to client
+skinparam BoxPadding 40
+skinparam ParticipantPadding 20
+!pragma teoz true
+box Server Side
+    box Server Nvda #LightBlue
+        participant NVDASlavePatcher
+        participant ServerCallBackManager
+        participant SlaveSession
+        participant SlaveDVCTransport
+        participant ServerUnicorn
+    end box
+    box Server Unicorn #LightYellow
+        participant ServerUnicornDVCAppLib
+        participant DVCServer
+    end box
+end box
+
+box RDP Connection
+    participant RDP_Framework_Terminal_Services_Client
+end box 
+
+box Client Side
+    box Client Unicorn #LightYellow
+        participant CDVCPluginChannelCallback
+        participant ClientUnicornDVCAppLib
+        participant DVCClient
+    end box
+    box Client Nvda #LightBlue
+        participant ClientUnicorn
+        participant MasterDVCTransport
+        participant ClientCallBackManager
+        participant LocalMachine
+        participant speech_manager
+    end box
+end box
+
+
+
+
+NVDASlavePatcher -> ServerCallBackManager: call_callbacks("speak")
+ServerCallBackManager -> SlaveSession: Speak()
+SlaveSession -> SlaveDVCTransport: Speak()
+SlaveDVCTransport -> SlaveDVCTransport: Send()
+SlaveDVCTransport -> SlaveDVCTransport: queue_thread().send_queue()
+group "While loop" [Sends string to TS. Runs as a seperate thread]
+SlaveDVCTransport -> ServerUnicorn: Write()
+ServerUnicorn -> ServerUnicornDVCAppLib: Write()
+ServerUnicornDVCAppLib -> DVCServer: Write()
+DVCServer -> RDP_Framework_Terminal_Services_Client: WriteFile()
+DVCServer --> ServerUnicornDVCAppLib: result
+ServerUnicornDVCAppLib --> ServerUnicorn: result
+ServerUnicorn --> SlaveDVCTransport: result
+end
+group "OnDataReceived" [Happens asynchronously from the Serverside \nChecks if data received is valid]
+RDP_Framework_Terminal_Services_Client -> CDVCPluginChannelCallback: OnDataReceived()
+CDVCPluginChannelCallback -> ClientUnicornDVCAppLib: OnDataReceived()
+ClientUnicornDVCAppLib -> DVCClient: OnDataReceived()
+DVCClient -> ClientUnicorn: DVCCNT_OnDataReceived()
+ClientUnicorn -> MasterDVCTransport: _OnDataReceived()
+MasterDVCTransport --> ClientUnicorn: result
+ClientUnicorn --> DVCClient: result
+DVCClient --> ClientUnicornDVCAppLib: result
+ClientUnicornDVCAppLib --> CDVCPluginChannelCallback: result
+CDVCPluginChannelCallback --> RDP_Framework_Terminal_Services_Client: result
+end
+MasterDVCTransport -> MasterDVCTransport: handle_data()
+MasterDVCTransport -> MasterDVCTransport: parse()
+MasterDVCTransport -> ClientCallBackManager: call_callbacks("msg_speak")
+ClientCallBackManager -> LocalMachine: speak()
+LocalMachine -> speech_manager: speak()
+
+@enduml
