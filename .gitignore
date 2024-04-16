@@ -2,7 +2,8 @@ addon/doc/*.css
 addon/doc/en/
 *_docHandler.py
 *.html
-*.ini
+locale/*.ini
+manifest.ini
 *.mo
 *.pot
 *.py[co]
