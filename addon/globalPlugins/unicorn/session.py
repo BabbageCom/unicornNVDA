@@ -26,7 +26,10 @@ class RemoteSession(object):
 		self.local_machine = local_machine
 		self.patcher = None
 		self.transport = transport
-
+		self.transport.callback_manager.register_callback('msg_passthrough_gesture', self.local_machine.passthrough_gesture)
+  
+	def passthroughGesture(self, gestureIdentifier: str):
+		self.transport.send(type='passthrough_gesture', gestureIdentifier=gestureIdentifier)
 
 
 class SlaveSession(RemoteSession):

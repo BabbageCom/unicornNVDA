@@ -8,6 +8,10 @@ import nvwave
 import tones
 import versionInfo
 from typing import List
+from logHandler import log
+import keyboardHandler
+import scriptHandler
+
 def setSpeechCancelledToFalse() -> None:
 	"""
 	This function updates the state of speech so that it is aware that future
@@ -27,6 +31,15 @@ class LocalMachine:
 		self.is_muted = False
 		self.receiving_braille = False
 		self._cached_sizes = None
+
+	def passthrough_gesture(self, gestureIdentifier: str, origin):
+		log.info(f"received {gestureIdentifier}")
+		gesture = keyboardHandler.KeyboardInputGesture.fromName(gestureIdentifier)
+		script = scriptHandler.findScript(gesture)
+		if script:
+			script(gesture)
+			return
+		gesture.send()
 
 	def play_wave(self, fileName: str, asynchronous: bool = True, **kwargs) -> None:
 		if self.is_muted:

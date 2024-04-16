@@ -33,7 +33,8 @@ from . import server
 from . import bridge
 from . import callback_manager
 from . import unicorn
-
+import scriptHandler
+import keyboardHandler
 addonHandler.initTranslation()
 
 
@@ -194,6 +195,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.master_transport.reconnector_thread.start()
 		self.disconnect_master_item.Enable()
 		self.connect_master_item.Enable(False)
+		self.mapPassthroughGestures()
   
 	def connect_slave(self) -> None:
 		try:
@@ -214,6 +216,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.disconnect_slave_item.Enable()
 		self.connect_slave_item.Enable(False)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_slave_failed)
+		self.mapPassthroughGestures()
 
 	def on_connection_status_nvda_changed(self, winError):
 		dialogs.Conn_State_Handler.statusNvdaToApplibChanged(winError)
@@ -242,6 +245,7 @@ class GlobalPlugin(GlobalPlugin):
 		beep_sequence.beep_sequence_async((880, 60), (440, 60))
 		self.disconnect_master_item.Enable(False)
 		self.connect_master_item.Enable()
+		self.unmapPassthroughGestures()
 
 	def disconnecting_as_master(self) -> None:
 		if self.menu:
@@ -252,6 +256,7 @@ class GlobalPlugin(GlobalPlugin):
 		if self.local_machine:
 			self.local_machine.is_muted = False
 		self.sending_keys = False
+		self.unmapPassthroughGestures()
 
 	def disconnect_slave(self) -> None:
 		self.callback_manager.call_callbacks('transport_disconnected', connection_type = unicorn.CTYPE.SERVER)
@@ -466,3 +471,38 @@ class GlobalPlugin(GlobalPlugin):
 		if connector is not None:
 			return connector.connected
 		return False
+
+	def unmapPassthroughGestures(self):
+		log.info("unmapping gestures")
+		import inputCore
+		inputCore.manager.loadUserGestureMap()
+
+	def mapPassthroughGestures(self):
+		log.info("mapping gestures")
+		import inputCore, NVDAState
+		inputCore.manager.loadUserGestureMap()
+		if self.master_transport:
+			unicornMapping = os.path.join(os.path.join(NVDAState.WritePaths.addonsDir, "unicornNVDA"), "extraMappingMaster.ini")
+		if self.slave_transport:
+			unicornMapping = os.path.join(os.path.join(NVDAState.WritePaths.addonsDir, "unicornNVDA"), "extraMappingSlave.ini")
+		inputCore.manager.userGestureMap.load(unicornMapping)
+		
+	@scriptHandler.script(
+		description="passThrough"
+	)
+	def script_passThroughGestures(self, gesture):
+		if not (self.master_transport or self.slave_transport):
+			log.error("no transport found, should not have been passed to this script.")
+			self.unmapPassthroughGestures()
+			return
+		session = self.slave_session or self.master_session
+		if not session:	
+			log.error("no session found, should not have been passed to this script.")
+			self.unmapPassthroughGestures()
+			return
+		gestureName = gesture.displayName
+		session.passthroughGesture(gestureName)
+		
+
+		
+
