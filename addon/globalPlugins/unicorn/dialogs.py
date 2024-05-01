@@ -93,7 +93,7 @@ class UnicornPanel(SettingsPanel):
 		self.applibConnectedCheckBox.Enable(False)
 
 		self.pluginConnectedCheckbox = self.right_Helper.addItem(
-			wx.CheckBox(self, wx.ID_ANY, label= _("Plugin connected to server applib (server only)"))
+			wx.CheckBox(self, wx.ID_ANY, label= _("Plugin connected to server applib"))
 		)
 		self.pluginConnectedCheckbox.Value = Conn_State_Handler.pluginToApplibServer
 		self.pluginConnectedCheckbox.Enable(False)
@@ -120,11 +120,11 @@ class UnicornPanel(SettingsPanel):
 	def updateConnectionStatuses(self, evt):
 		global Conn_State_Handler
 		if Conn_State_Handler.connectionType == unicorn.CTYPE.CLIENT:
-			self.pluginConnectedCheckbox.Hide()
+			self.pluginConnectedCheckbox.Show()
 			self.wfapiCheckbox.Hide()
 			self.vdpvcbridgeCheckbox.Hide()
 		else:
-			self.pluginConnectedCheckbox.Show()
+			self.pluginConnectedCheckbox.Hide()
 			self.wfapiCheckbox.Show()
 			self.vdpvcbridgeCheckbox.Show()
 		self.nvdaconnectedCheckBox.Value   = Conn_State_Handler.nvdaToApplib
