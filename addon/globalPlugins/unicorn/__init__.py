@@ -480,5 +480,12 @@ class GlobalPlugin(GlobalPlugin):
 		gestureName = gesture.displayName
 		session.passthroughGesture(gestureName)
 		
-
-	
+	@scriptHandler.script(gestures=["kb:nvda+e"], description=_("Minimize Remote Application"))
+	def script_minimize(self,gesture):
+		if (self.master_transport and self.master_session):
+			fg = api.getForegroundObject()
+			parent = fg.simpleParent.simpleParent
+			# Sets the focus to the desktop -> This is always the last item in the list
+			parent.children[parent.childCount-1].setFocus()
+			gestureMinimize = keyboardHandler.KeyboardInputGesture.fromName("windows+m")
+			gestureMinimize.send()		
