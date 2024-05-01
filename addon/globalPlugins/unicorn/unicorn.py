@@ -7,6 +7,7 @@ import sys
 from ctypes import *
 from ctypes.wintypes import *
 import enum
+import config
 ARCHITECTURE=len(bin(sys.maxsize)[1:])
 
 class CTYPE(enum.IntEnum):
@@ -36,6 +37,17 @@ def vdp_rdpvcbridge_path():
 	bridgeLibPath=os.path.join(location,'vdp_rdpvcbridge.dll')
 	if os.path.isfile(bridgeLibPath):
 		return bridgeLibPath
+	return None
+
+def wfapi_path():
+	# take the location that is either given manually or the default installation that we found (undocumented)
+	try:
+		wfapi_location = config.conf['wfapiLocation']
+	except:
+		wfapi_location =  "c:\\Program Files (x86)\\Citrix\\HDX\\bin\\wfapi.dll"
+	if os.path.isfile(wfapi_location):
+		return wfapi_location
+	
 	return None
 
 def unicorn_client():
@@ -77,11 +89,25 @@ class Unicorn(object):
 			lib=WinDLL(libPath)
 		return lib
 
-
 	@staticmethod
-	def check_wfapi_dll() -> bool:
+	def load_wfapi():
+		# Try to load the wfapi so Unicorn can find it regardless of its path
+		wfapi = None
 		try:
-			lib=WinDLL("wfapi.dll")
+			wfapi=windll.wfapi
+		except WindowsError as e:
+			wfapiPath=wfapi_path()
+			if wfapiPath:
+				try:
+					wfapi=WinDLL(wfapiPath)
+				except:
+					wfapi=None
+		return wfapi
+
+	@classmethod
+	def check_wfapi_dll(cls) -> bool:
+		try:
+			lib=cls.load_wfapi()
 			if lib: return True
 		except:
 			pass
@@ -108,6 +134,7 @@ class Unicorn(object):
 		self.vdp_bridge = None
 		if supportView:
 			self.vdp_bridge = self.load_vdp_bridge()
+			self.wfapi = self.load_wfapi()
 		self.lib = self.load_unicornDVC_applib(libPath)
 		
 		self.closed = False
