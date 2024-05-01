@@ -180,7 +180,10 @@ class DVCTransport(Transport, unicorn.UnicornCallbackHandler):
 		unicorn.UnicornCallbackHandler.__init__(self)
 
 		log.info(f"Connecting to DVC as {connection_type}")
-		self.lib = unicorn.Unicorn(connection_type, self)
+		try:
+			self.lib = unicorn.Unicorn(connection_type, self)
+		except:
+			raise RuntimeError("Unable to load UnicornDVC applib interface. Check logs for details.")
 		self.opened = False
 		self.initialized = False
 		# Buffer to hold partially received data

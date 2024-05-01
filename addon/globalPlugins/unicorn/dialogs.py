@@ -10,25 +10,37 @@ import config
 addonHandler.initTranslation()
 
 class ConnectionStateHandler():
-	def statusNvdaToApplibChanged(self, winError):
+	def resetToDefault(self):
+		self.nvdaToApplib = True
+		self.applibToPlugin = True
+		self.pluginToApplibServer = True
+		self.wfapiAvailable = unicorn.Unicorn.check_wfapi_dll()
+		self.vdpvcbridgeAvailable = unicorn.Unicorn.check_vdp_rdpvcbridge_dll()
+		self.connectionType = unicorn.CTYPE.CLIENT
+
+	def __init__(self):
+		self.resetToDefault()
+  
+	def statusNvdaToApplibChanged(self, winError: int) -> bool:
 		if (winError != 0):
 			self.nvdaToApplib = False
 		else:
 			self.nvdaToApplib = True
 
-	def statusApplibToPluginChanged(self, winError):
+	def statusApplibToPluginChanged(self, winError: int) -> bool:
 		if (winError == 1722 or winError == 2250 or winError == 31 or winError == 1 or winError == 21):
 			self.applibToPlugin = False
 		else:	
 			self.applibToPlugin = True
 
-	def statusPluginToApplibChanged(self, winError):
+	def statusPluginToApplibChanged(self, winError: int) -> bool:
 		if (winError == 1722):
 			self.pluginToApplibServer = False
 		else:
 			self.pluginToApplibServer = True
 
-Conn_State_Handler = ConnectionStateHandler()
+
+Conn_State_Handler: ConnectionStateHandler = ConnectionStateHandler()
 
 class UnicornPanel(SettingsPanel):
 	title = _("UnicornDVC")
@@ -80,28 +92,46 @@ class UnicornPanel(SettingsPanel):
 		self.applibConnectedCheckBox.Value = Conn_State_Handler.applibToPlugin
 		self.applibConnectedCheckBox.Enable(False)
 
-		# Only needed for client side
-		if (config.conf["unicorn"]["bServerSide"] == False):
-			log.error(f"SetServerSide called value: Made the checkbox")
-			self.pluginConnectedCheckbox = self.right_Helper.addItem(
-				wx.CheckBox(self, wx.ID_ANY, label= _("Plugin connected to server applib"))
-			)
-			self.pluginConnectedCheckbox.Value = Conn_State_Handler.pluginToApplibServer
-			self.pluginConnectedCheckbox.Enable(False)
+		self.pluginConnectedCheckbox = self.right_Helper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label= _("Plugin connected to server applib (server only)"))
+		)
+		self.pluginConnectedCheckbox.Value = Conn_State_Handler.pluginToApplibServer
+		self.pluginConnectedCheckbox.Enable(False)
+
+		self.wfapiCheckbox = self.right_Helper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label= _("wfapi.dll available (citrix server only)"))
+		)
+		self.wfapiCheckbox.Value = Conn_State_Handler.wfapiAvailable
+		self.wfapiCheckbox.Enable(False)
+		self.vdpvcbridgeCheckbox = self.right_Helper.addItem(
+			wx.CheckBox(self, wx.ID_ANY, label= _("vdp_rdpvcbridge.dll available (vmware server only)"))
+		)
+		self.vdpvcbridgeCheckbox.Value = Conn_State_Handler.vdpvcbridgeAvailable
+		self.vdpvcbridgeCheckbox.Enable(False)
 
 		self.Timer = wx.Timer(self)
 		self.Bind(wx.EVT_TIMER, self.updateConnectionStatuses, self.Timer)
 		self.Timer.Start(500)
-  
+
 		self.intermediate_Horizontal_Helper.addItem(self.left_Helper, border = (1), flag=wx.ALL)
 		self.intermediate_Horizontal_Helper.addItem(self.right_Helper, border = (1), flag=wx.ALL)
 		sizer_helper.addItem(self.intermediate_Horizontal_Helper, border = (1), flag=wx.ALL)
-   
+  
 	def updateConnectionStatuses(self, evt):
 		global Conn_State_Handler
+		if Conn_State_Handler.connectionType == unicorn.CTYPE.CLIENT:
+			self.pluginConnectedCheckbox.Hide()
+			self.wfapiCheckbox.Hide()
+			self.vdpvcbridgeCheckbox.Hide()
+		else:
+			self.pluginConnectedCheckbox.Show()
+			self.wfapiCheckbox.Show()
+			self.vdpvcbridgeCheckbox.Show()
 		self.nvdaconnectedCheckBox.Value   = Conn_State_Handler.nvdaToApplib
 		self.applibConnectedCheckBox.Value = Conn_State_Handler.applibToPlugin
 		self.pluginConnectedCheckbox.Value = Conn_State_Handler.pluginToApplibServer
+		self.wfapiCheckbox.Value = Conn_State_Handler.wfapiAvailable
+		self.vdpvcbridgeCheckbox.Value = Conn_State_Handler.vdpvcbridgeAvailable
 
 	def onLicense(self, evt) -> None:
 		with UnicornLicenseDialog(self) as dlg:
