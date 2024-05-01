@@ -170,10 +170,14 @@ class GlobalPlugin(GlobalPlugin):
 			gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(dialogs.UnicornPanel)
 
 	def connect_master(self) -> None:
+		dialogs.Conn_State_Handler.resetToDefault()
+		dialogs.Conn_State_Handler.connectionType = unicorn.CTYPE.CLIENT	
 		try:
-
 			maxBytes = conf['unicorn']['maxBytes'] if conf['unicorn']['limitMessageSize'] else 10**9
 			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type=unicorn.CTYPE.CLIENT, maxBytes=maxBytes)
+		except RuntimeError as e:
+			self.on_initialize_failed(e)
+			return
 		except OSError as e:
 			self.on_initialize_failed(e)
 			return
@@ -185,15 +189,24 @@ class GlobalPlugin(GlobalPlugin):
 		transport.callback_manager.register_callback('transport_closing', self.disconnecting_as_master)
 		transport.callback_manager.register_callback('transport_disconnected', self.on_disconnected_as_master)
 		transport.callback_manager.register_callback('msg_client_joined', lambda **kwargs: self.evaluate_remote_shell())
+		transport.callback_manager.register_callback('update_plugin_dialog', self.on_connection_status_plugin_changed)		
+		transport.callback_manager.register_callback('update_applib_dialog', self.on_connection_status_appllib_changed)		
+		transport.callback_manager.register_callback('update_nvda_dialog', self.on_connection_status_nvda_changed)		
+		
 		self.master_transport = transport
 		self.master_transport.reconnector_thread.start()
 		self.disconnect_master_item.Enable()
 		self.connect_master_item.Enable(False)
 
 	def connect_slave(self) -> None:
+		dialogs.Conn_State_Handler.resetToDefault()
+		dialogs.Conn_State_Handler.connectionType = unicorn.CTYPE.SERVER	
 		try:
 			maxBytes = conf['unicorn']['maxBytes'] if conf['unicorn']['limitMessageSize'] else 10 ** 9
 			transport = DVCTransport(serializer=serializer.JSONSerializer(), connection_type=unicorn.CTYPE.SERVER, maxBytes=maxBytes)
+		except RuntimeError as e:
+			self.on_initialize_failed(e)
+			return
 		except OSError as e:
 			self.on_initialize_failed(e)
 			return
@@ -201,11 +214,23 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_transport = transport
 		self.slave_transport.callback_manager.register_callback('transport_connected', self.on_connected_as_slave)
 		self.slave_transport.callback_manager.register_callback('msg_set_braille_info', self.send_braille_info_to_master)
+		self.slave_transport.callback_manager.register_callback('update_applib_dialog', self.on_connection_status_appllib_changed)		
+		self.slave_transport.callback_manager.register_callback('update_nvda_dialog', self.on_connection_status_nvda_changed)		
+							
 		self.slave_transport.reconnector_thread.start()
 		self.disconnect_slave_item.Enable()
 		self.connect_slave_item.Enable(False)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_slave_failed)
 
+	def on_connection_status_nvda_changed(self, winError):
+		dialogs.Conn_State_Handler.statusNvdaToApplibChanged(winError)
+
+	def on_connection_status_appllib_changed(self, winError):
+		dialogs.Conn_State_Handler.statusApplibToPluginChanged(winError)
+
+	def on_connection_status_plugin_changed(self, winError):
+		dialogs.Conn_State_Handler.statusPluginToApplibChanged(winError)
+    		
 	def send_braille_info_to_master(self, *args, **kwargs) -> None:
 		if self.master_session:
 			self.master_session.send_braille_info(*args, **kwargs)
@@ -297,7 +322,7 @@ class GlobalPlugin(GlobalPlugin):
 			parent=gui.mainFrame,
 			caption= _("Error Initializing"),
 			# Translators: Message shown when cannot connect to the remote computer.
-			message=_("Can't initialize UnicornDVC to create a virtual channel. Please make sure that you have a valid license.\nInternal error: {error}").format(error=e.strerror),
+			message=_("Can't initialize UnicornDVC to create a virtual channel. Consult the log or contact support@babbage.com. \nInternal error: {error}").format(error=e),
 			style=wx.OK | wx.ICON_WARNING
 		)
 

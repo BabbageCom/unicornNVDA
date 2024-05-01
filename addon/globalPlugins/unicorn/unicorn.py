@@ -7,6 +7,7 @@ import sys
 from ctypes import *
 from ctypes.wintypes import *
 import enum
+import config
 ARCHITECTURE=len(bin(sys.maxsize)[1:])
 
 class CTYPE(enum.IntEnum):
@@ -38,6 +39,17 @@ def vdp_rdpvcbridge_path():
 		return bridgeLibPath
 	return None
 
+def wfapi_path():
+	# take the location that is either given manually or the default installation that we found (undocumented)
+	try:
+		wfapi_location = config.conf['wfapiLocation']
+	except:
+		wfapi_location =  "c:\\Program Files (x86)\\Citrix\\HDX\\bin\\wfapi.dll"
+	if os.path.isfile(wfapi_location):
+		return wfapi_location
+	
+	return None
+
 def unicorn_client():
 	try:
 		return bool(winreg.OpenKey(winreg.HKEY_CLASSES_ROOT,r"CLSID\{E8BACC05-64F6-4534-9764-FB6698CA3362}",0,winreg.KEY_READ|winreg.KEY_WOW64_32KEY))
@@ -46,6 +58,69 @@ def unicorn_client():
 
 class Unicorn(object):
 	"""Class to facilitate DVC communication using the Unicorn DVC library"""
+
+	@staticmethod
+	def load_vdp_bridge():
+		# Try to load the vdp_rdpvcbridge so UNicorn can find it regardless of its path
+		vdp_bridge = None
+		try:
+			vdp_bridge=windll.vdp_rdpvcbridge
+		except WindowsError:
+			vdp_bridge_path=vdp_rdpvcbridge_path()
+			if vdp_bridge_path:
+				try:
+					vdp_bridge=WinDLL(vdp_bridge_path)
+				except:
+					vdp_bridge=None
+		return vdp_bridge
+
+	@staticmethod
+	def load_unicornDVC_applib(libPath = None):
+		lib = None
+		if not libPath:
+			libPath=unicorn_lib_path()
+			# Load Unicorn
+			try:
+				lib=windll.UnicornDVCAppLib
+			except WindowsError:
+				if not libPath:
+					raise RuntimeError("UnicornDVC library not found")
+		if libPath and not lib:
+			lib=WinDLL(libPath)
+		return lib
+
+	@staticmethod
+	def load_wfapi():
+		# Try to load the wfapi so Unicorn can find it regardless of its path
+		wfapi = None
+		try:
+			wfapi=windll.wfapi
+		except WindowsError as e:
+			wfapiPath=wfapi_path()
+			if wfapiPath:
+				try:
+					wfapi=WinDLL(wfapiPath)
+				except:
+					wfapi=None
+		return wfapi
+
+	@classmethod
+	def check_wfapi_dll(cls) -> bool:
+		try:
+			lib=cls.load_wfapi()
+			if lib: return True
+		except:
+			pass
+		return False
+
+	@classmethod
+	def check_vdp_rdpvcbridge_dll(cls) -> bool:
+		try:
+			lib=cls.load_vdp_bridge()
+			if lib: return True
+		except:
+			pass
+		return False
 
 	def __init__(self, connectionType: CTYPE, callbackHandler, supportView=True, libPath=None):
 		if not isinstance(callbackHandler, UnicornCallbackHandler):
@@ -56,27 +131,12 @@ class Unicorn(object):
 		self.connectionType=connectionType.value
 		self.callbackHandler=callbackHandler
 		self.supportView=supportView
+		self.vdp_bridge = None
 		if supportView:
-			# Try to load the vdp_rdpvcbridge so UNicorn can find it regardless of its path
-			try:
-				self.vdp_bridge=windll.vdp_rdpvcbridge
-			except WindowsError:
-				vdp_bridge_path=vdp_rdpvcbridge_path()
-				if vdp_bridge_path:
-					try:
-						self.vdp_bridge=WinDLL(vdp_bridge_path)
-					except:
-						self.vdp_bridge=None
-		if not libPath:
-			libPath=unicorn_lib_path()
-			# Load Unicorn
-			try:
-				self.lib=windll.UnicornDVCAppLib
-			except WindowsError:
-				if not libPath:
-					raise RuntimeError("UnicornDVC library not found")
-		if libPath and not self.lib:
-			self.lib=WinDLL(libPath)
+			self.vdp_bridge = self.load_vdp_bridge()
+			self.wfapi = self.load_wfapi()
+		self.lib = self.load_unicornDVC_applib(libPath)
+		
 		self.closed = False
 		self.initialized = False
 		self.registerFunctions()
