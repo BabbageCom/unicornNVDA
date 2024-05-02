@@ -195,7 +195,6 @@ class GlobalPlugin(GlobalPlugin):
 		self.master_transport.reconnector_thread.start()
 		self.disconnect_master_item.Enable()
 		self.connect_master_item.Enable(False)
-		self.mapPassthroughGestures()
   
 	def connect_slave(self) -> None:
 		try:
@@ -210,13 +209,13 @@ class GlobalPlugin(GlobalPlugin):
 		self.slave_transport.callback_manager.register_callback('msg_set_braille_info', self.send_braille_info_to_master)
 		self.slave_transport.callback_manager.register_callback('update_applib_dialog', self.on_connection_status_appllib_changed)		
 		self.slave_transport.callback_manager.register_callback('update_nvda_dialog', self.on_connection_status_nvda_changed)		
+		self.slave_transport.callback_manager.register_callback('transport_disconnected', self.on_disconnected_as_slave)
 		self.on_connection_status_nvda_changed(0)
 		conf["unicorn"]["bServerSide"] = True						
 		self.slave_transport.reconnector_thread.start()
 		self.disconnect_slave_item.Enable()
 		self.connect_slave_item.Enable(False)
 		transport.callback_manager.register_callback('transport_connection_failed', self.on_connected_as_slave_failed)
-		self.mapPassthroughGestures()
 
 	def on_connection_status_nvda_changed(self, winError):
 		dialogs.Conn_State_Handler.statusNvdaToApplibChanged(winError)
@@ -256,7 +255,6 @@ class GlobalPlugin(GlobalPlugin):
 		if self.local_machine:
 			self.local_machine.is_muted = False
 		self.sending_keys = False
-		self.unmapPassthroughGestures()
 
 	def disconnect_slave(self) -> None:
 		self.callback_manager.call_callbacks('transport_disconnected', connection_type = unicorn.CTYPE.SERVER)
@@ -282,17 +280,25 @@ class GlobalPlugin(GlobalPlugin):
 		self.evaluate_remote_shell()
 		ui.message(_("Connected in client mode!"), speechPriority=speech.priorities.Spri.NOW)
 		beep_sequence.beep_sequence_async((440, 60), (660, 60))
+		self.mapPassthroughGestures()
+
+	def on_disconnected_as_slave(self) -> None:
+		log.info("disconnected master mapping")
+		self.unmapPassthroughGestures()
 
 	def on_disconnected_as_master(self) -> None:
+		log.info("disconnected slave mapping")
 		# Translators: Presented when connection to a remote computer was interupted.
 		ui.message(_("Connection as client interrupted"), speechPriority=speech.priorities.Spri.NOW)	
 		self.callback_manager.call_callbacks('transport_disconnected')
+		self.unmapPassthroughGestures()
 
 	def on_connected_as_slave(self) -> None:
 		log.info("Connected DVC in server mode")
 		self.callback_manager.call_callbacks('transport_connected', connection_type = unicorn.CTYPE.SERVER, transport=self.slave_transport)
 		ui.message(_("Connected in server mode!"), speechPriority=speech.priorities.Spri.NOW)
-
+		self.mapPassthroughGestures()
+  
 	def isRemoteShell(self, fg, focus) -> bool:
 		if fg.windowClassName in REMOTE_SHELL_CLASSES:
 			return True
@@ -504,12 +510,10 @@ class GlobalPlugin(GlobalPlugin):
 		session.passthroughGesture(gestureName)
 		
 	@scriptHandler.script(gestures=["kb:nvda+e"], description=_("Minimize Remote Application"))
-	def script_minimize(self,gesture):
+	def script_minimize(self, gesture):
 		if (self.master_transport and self.master_session):
-			fg = api.getForegroundObject()
-			parent = fg.simpleParent.simpleParent
-   
+			desktop = api.getDesktopObject()
 			# Sets the focus to the desktop -> This is always the last item in the list
-			parent.children[parent.childCount-1].setFocus()
+			desktop.lastChild.setFocus()
 			gestureMinimize = keyboardHandler.KeyboardInputGesture.fromName("windows+m")
 			gestureMinimize.send()		
