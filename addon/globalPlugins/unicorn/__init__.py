@@ -195,6 +195,7 @@ class GlobalPlugin(GlobalPlugin):
 		self.master_transport.reconnector_thread.start()
 		self.disconnect_master_item.Enable()
 		self.connect_master_item.Enable(False)
+		self.local_machine.isMaster = True
   
 	def connect_slave(self) -> None:
 		try:
@@ -237,6 +238,7 @@ class GlobalPlugin(GlobalPlugin):
 			self.disconnect_slave()
 
 	def disconnect_master(self) -> None:
+		self.local_machine.isMaster = False
 		self.callback_manager.call_callbacks('transport_disconnected', connection_type = unicorn.CTYPE.CLIENT)
 		self.master_transport.close()
 		self.master_transport = None
@@ -509,11 +511,3 @@ class GlobalPlugin(GlobalPlugin):
 		gestureName = gesture.displayName
 		session.passthroughGesture(gestureName)
 		
-	@scriptHandler.script(gestures=["kb:nvda+e"], description=_("Minimize Remote Application"))
-	def script_minimize(self, gesture):
-		if (self.master_transport and self.master_session):
-			desktop = api.getDesktopObject()
-			# Sets the focus to the desktop -> This is always the last item in the list
-			desktop.lastChild.setFocus()
-			gestureMinimize = keyboardHandler.KeyboardInputGesture.fromName("windows+m")
-			gestureMinimize.send()		

@@ -11,6 +11,7 @@ from typing import List
 from logHandler import log
 import keyboardHandler
 import scriptHandler
+import api
 
 def setSpeechCancelledToFalse() -> None:
 	"""
@@ -31,8 +32,13 @@ class LocalMachine:
 		self.is_muted = False
 		self.receiving_braille = False
 		self._cached_sizes = None
+		self.isMaster = False
 
 	def passthrough_gesture(self, gestureIdentifier: str, origin):
+		if self.isMaster:
+			desktop = api.getDesktopObject()
+			# Sets the focus to the desktop -> This is always the last item in the list
+			desktop.lastChild.setFocus()
 		log.info(f"received {gestureIdentifier}")
 		gesture = keyboardHandler.KeyboardInputGesture.fromName(gestureIdentifier)
 		script = scriptHandler.findScript(gesture)
