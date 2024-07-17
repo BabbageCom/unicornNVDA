@@ -21,6 +21,8 @@ from logHandler import log
 from globalPluginHandler import GlobalPlugin
 from config import conf
 from typing import Callable
+from scriptHandler import script
+import keyboardHandler
 
 from .configSpec import configSpec
 from . import beep_sequence
@@ -473,3 +475,10 @@ class GlobalPlugin(GlobalPlugin):
 		if connector is not None:
 			return connector.connected
 		return False
+
+	@script(gestures=["kb:\\"], description= _("Replacement for pausebreak"))
+	def script_pressPauseBreak(self, gesture):
+		if self.slave_session != None:
+			log.info("Replacement for pausebreak!")
+			pause = keyboardHandler.KeyboardInputGesture.fromName("control+alt+pause")
+			pause.send()
