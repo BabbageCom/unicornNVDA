@@ -21,16 +21,25 @@ class NVDAPatcher(callback_manager.CallbackManager):
 		self.orig_setDisplayByName = None
 
 	def patch_set_display(self) -> None:
+		log.info(f"NVDAMasterPatcher::patch_set_display called")
 		if versionInfo.version_year >= 2023:
+			log.info(f"NVDAMasterPatcher::patch_set_display version_year >= 2023")
 			braille.displayChanged.register(self.handle_displayChanged)
 			braille.displaySizeChanged.register(self.handle_displaySizeChanged)
+			log.info(f"NVDAMasterPatcher::patch_set_display registers called")
+			log.info(f"NVDAMasterPatcher::patch_set_display exit")
 			return
 		if self.orig_setDisplayByName is not None:
+			log.info(f"NVDAMasterPatcher::patch_set_display orig_setDisplayByName is not None")
+			log.info(f"NVDAMasterPatcher::patch_set_display exit")
 			return
+		log.info(f"NVDAMasterPatcher::patch_set_display else")
 		self.orig_setDisplayByName = braille.handler.setDisplayByName
 		braille.handler.setDisplayByName = self.setDisplayByName
+		log.info(f"NVDAMasterPatcher::patch_set_display exit")
 
 	def unpatch_set_display(self) -> None:
+		log.info(f"NVDAMasterPatcher::unpatch_set_display called")
 		if versionInfo.version_year >= 2023:
 			braille.displaySizeChanged.unregister(self.handle_displaySizeChanged)
 			braille.displayChanged.unregister(self.handle_displayChanged)
@@ -47,15 +56,18 @@ class NVDAPatcher(callback_manager.CallbackManager):
 		self.unpatch_set_display()
 
 	def setDisplayByName(self, *args, **kwargs) -> None:
+		log.info(f"NVDAMasterPatcher::setDisplayByName called")
 		result=self.orig_setDisplayByName(*args, **kwargs)
 		if result:
 			self.call_callbacks('set_display')
 		return result
 
 	def handle_displayChanged(self, display: braille.BrailleDisplayDriver) -> None:
+		log.info(f"NVDAMasterPatcher::handle_displayChanged called")
 		self.call_callbacks('set_display', display=display)
 
 	def handle_displaySizeChanged(self, displaySize: int) -> None:
+		log.info(f"NVDAMasterPatcher::handle_displaySizeChanged called")
 		self.call_callbacks('set_display', displaySize=displaySize)
 
 class NVDASlavePatcher(NVDAPatcher):
@@ -198,34 +210,54 @@ class NVDAMasterPatcher(NVDAPatcher):
 		self.orig_executeGesture = None
 
 	def patch_braille_input(self) -> None:
+		log.info(f"NVDAMasterPatcher::patch_braille_input called")
 		if versionInfo.version_year >= 2023:
+			log.info(f"NVDAMasterPatcher::patch_braille_input versionInfo.version_year >= 2023")
 			inputCore.decide_executeGesture.register(self.handle_decide_executeGesture)
+			log.info(f"NVDAMasterPatcher::patch_braille_input register executeGesture")
+			log.info(f"NVDAMasterPatcher::patch_braille_input exit")
 			return
 		if self.orig_executeGesture is not None:
+			log.info(f"NVDAMasterPatcher::patch_braille_input orig_executeGesture is not None")
+			log.info(f"NVDAMasterPatcher::patch_braille_input exit")
 			return
+		log.info(f"NVDAMasterPatcher::patch_braille_input else")
 		self.orig_executeGesture = inputCore.manager.executeGesture
 		inputCore.manager.executeGesture= self.executeGesture
+		log.info(f"NVDAMasterPatcher::patch_braille_input exit")
 
 	def unpatch_braille_input(self) -> None:
+		log.info(f"NVDAMasterPatcher::unpatch_braille_input called")
 		if versionInfo.version_year >= 2023:
+			log.info(f"NVDAMasterPatcher::unpatch_braille_input versionInfo.version_year >= 2023")
 			inputCore.decide_executeGesture.unregister(self.handle_decide_executeGesture)
+			log.info(f"NVDAMasterPatcher::unpatch_braille_input unregister executeGesture")
+			log.info(f"NVDAMasterPatcher::unpatch_braille_input exit")
 			return
 		if self.orig_executeGesture is None:
+			log.info(f"NVDAMasterPatcher::unpatch_braille_input orig_executeGesture is None")
+			log.info(f"NVDAMasterPatcher::unpatch_braille_input exit")
 			return
+		log.info(f"NVDAMasterPatcher::unpatch_braille_input else")
 		inputCore.manager.executeGesture = self.orig_executeGesture
 		self.orig_executeGesture = None
+		log.info(f"NVDAMasterPatcher::unpatch_braille_input exit")
 
 	def patch(self) -> None:
+		log.info(f"NVDAMasterPatcher::patch called")
 		super().patch()
 		# We do not patch braille input by default
 
 	def unpatch(self) -> None:
+		log.info(f"NVDAMasterPatcher::unpatch called")
 		super().unpatch()
 		# To be sure, unpatch braille input
 		self.unpatch_braille_input()
 
 	def handle_decide_executeGesture(self, gesture) -> bool:
+		log.info(f"NVDAMasterPatcher::handle_decide_executeGesture called")
 		if isinstance(gesture,(braille.BrailleDisplayGesture,brailleInput.BrailleInputGesture)):
+			log.info(f"NVDAMasterPatcher::handle_decide_executeGesture isinstance")
 			dict = { key: gesture.__dict__[key] for key in gesture.__dict__ if isinstance(gesture.__dict__[key],(int,str,bool))}
 			if gesture.script:
 				name=scriptHandler.getScriptName(gesture.script)
@@ -263,10 +295,15 @@ class NVDAMasterPatcher(NVDAPatcher):
 			if hasattr(gesture,"routingIndex") and "routingIndex" not in dict:
 				dict["routingIndex"]=gesture.routingIndex
 			self.call_callbacks('braille_input', **dict)
+			log.info(f"NVDAMasterPatcher::handle_decide_executeGesture exit")
 			return False
 		else:
+			log.info(f"NVDAMasterPatcher::handle_decide_executeGesture exit")
 			return True
 
 	def executeGesture(self, gesture) -> None:
+		log.info(f"NVDAMasterPatcher::executeGesture called")
 		if not self.handle_decide_executeGesture(gesture):
+			log.info(f"NVDAMasterPatcher::executeGesture not handle_decide_executeGesture")
 			self.orig_executeGesture(gesture)
+			log.info(f"NVDAMasterPatcher::executeGesture exit")

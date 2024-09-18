@@ -166,6 +166,7 @@ class SlaveSession(RemoteSession):
 class MasterSession(RemoteSession):
 
 	def __init__(self, *args, **kwargs):
+		log.info(f"MasterSession::__init__ called")
 		super(MasterSession, self).__init__(*args, **kwargs)
 		self.slaves = defaultdict(dict)
 		self.patcher = nvda_patcher.NVDAMasterPatcher()
@@ -190,12 +191,17 @@ class MasterSession(RemoteSession):
 			self.handle_client_connected(client)
 
 	def handle_client_connected(self, client = Dict, **kwargs) -> None:
+		log.info(f"MasterSession::handle_client_connected called")
 		self.patcher.patch()
+		log.info(f"MasterSession::handle_client_connected patch called")
 		if not self.patch_callbacks_added:
+			log.info(f"MasterSession::handle_client_connected not patch_callbacks_added")
 			self.add_patch_callbacks()
+			log.info(f"MasterSession::handle_client_connected add_patch_callbacks")
 			self.patch_callbacks_added = True
 		self.send_braille_info()
 		tones.beep(1000, 300)
+		log.info(f"MasterSession::handle_client_connected exit")
 
 	def handle_client_disconnected(self, client = Dict, **kwargs) -> None:
 		self.patcher.unpatch()
@@ -205,11 +211,15 @@ class MasterSession(RemoteSession):
 		tones.beep(108, 300)
 
 	def send_braille_info(self, display=None, displaySize=None, **kwargs) -> None:
+		log.info(f"MasterSession::send_braille_info called")
 		if display is None:
+			log.info(f"MasterSession::send_braille_info display is None")
 			display = braille.handler.display
 		if displaySize is None:
+			log.info(f"MasterSession::send_braille_info displaySize is None")
 			displaySize = braille.handler.displaySize
 		self.transport.send(type="set_braille_info", name=display.name, numCells=displaySize)
+		log.info(f"MasterSession::send_braille_info exit")
 
 	def braille_input(self, **kwargs) -> None:
 		self.transport.send(type="braille_input", **kwargs)
