@@ -8,6 +8,7 @@ from ctypes import *
 from ctypes.wintypes import *
 import enum
 import config
+from logHandler import log
 ARCHITECTURE=len(bin(sys.maxsize)[1:])
 
 class CTYPE(enum.IntEnum):
@@ -39,14 +40,41 @@ def vdp_rdpvcbridge_path():
 		return bridgeLibPath
 	return None
 
-def wfapi_path():
-	# take the location that is either given manually or the default installation that we found (undocumented)
+def find_wfapi_dll():
 	try:
-		wfapi_location = config.conf['wfapiLocation']
+		base_dir = os.path.join(os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)'), 'Citrix')
+		target_file = 'wfapi.dll'
+
+		if not os.path.exists(base_dir):
+			return None
+		
+		for root, dirs, files in os.walk(base_dir):
+			if target_file in files:
+				return os.path.join(root, target_file)
+
+	except Exception as e:
+		log.warning(f"find_wfapi_dll failed: {e}")
+
+	return None
+
+def wfapi_path():
+	#  REDUNDANT: take the location that is either given manually or the default installation that we found (undocumented)
+	# Adjusted browse through citrix folder to find it. If it can't be found resort to manual location and finally to potential hardpaths.
+	try: 
+		wfapi_location = find_wfapi_dll()
+		if os.path.isfile(wfapi_location):
+			return wfapi_location
 	except:
-		wfapi_location =  "c:\\Program Files (x86)\\Citrix\\HDX\\bin\\wfapi.dll"
-	if os.path.isfile(wfapi_location):
-		return wfapi_location
+		try:
+			wfapi_location = config.conf['wfapiLocation']
+		except:
+			wfapi_location = "c:\\Program Files (x86)\\Citrix\\HDX\\bin\\wfapi.dll"
+			if	os.path.isfile(wfapi_location):
+				return wfapi_location
+
+			wfapi_location =  "c:\\Program Files (x86)\\Citrix\\System32\\wfapi.dll"
+			if	os.path.isfile(wfapi_location):
+				return wfapi_location
 	
 	return None
 
@@ -97,10 +125,13 @@ class Unicorn(object):
 			wfapi=windll.wfapi
 		except WindowsError as e:
 			wfapiPath=wfapi_path()
+			log.warning(f"Received windows error when loading wfapi. see err: {e}, Current wfapi_path: {wfapiPath}")
 			if wfapiPath:
 				try:
 					wfapi=WinDLL(wfapiPath)
-				except:
+					log.warning(f"Loaded wfapi with WinDLL(): {wfapi}")
+				except Exception as e1:
+					log.warning(f"Did not load wfapi with WinDLL(), see err: {e1}")
 					wfapi=None
 		return wfapi
 
