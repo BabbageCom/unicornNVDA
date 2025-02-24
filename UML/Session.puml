@@ -1,4 +1,4 @@
-@startuml Session Interaction Diagram
+@startuml Session_Interaction_Diagram
 Session.DVCTransport <-- Session.RemoteSession : "done by MasterSession/SlaveSession"
 GlobalPlugin *-- Session.RemoteSession
 LocalMachine <-- Session.CallbackManager : "Sends callbacks to"

@@ -1,0 +1,33 @@
+@startuml
+header callback commands over UnicornNVDA
+
+box server
+participant NVDA_1
+participant USA_1
+participant UnicornNVDA_1
+end box
+box client
+participant UnicornNVDA_2
+participant USA_2
+participant NVDA_2
+end box
+
+NVDA_1-> USA_1: we love rabies
+NVDA_1-> USA_1: speech sequence
+USA_1 --> USA_1: inject callback commands
+USA_1 -> UnicornNVDA_1: speech sequence
+UnicornNVDA_1--> UnicornNVDA_1: saves callback\n commands in database
+UnicornNVDA_1--> UnicornNVDA_1: serializes callback\n commands for sending
+UnicornNVDA_1-> UnicornNVDA_2: serialized speech sequence
+UnicornNVDA_2 --> UnicornNVDA_2: deserialize speech sequence
+group speaking
+UnicornNVDA_2-> NVDA_2: speech sequence
+NVDA_2-> UnicornNVDA_2: callback command
+UnicornNVDA_2 -> UnicornNVDA_1: serialized callback command
+UnicornNVDA_1 --> UnicornNVDA_1: find corresponding callback\ncommand in database
+UnicornNVDA_1 --> USA_1: call callback
+USA_1--> UnicornNVDA_1: set magnification rectangle
+UnicornNVDA_1--> UnicornNVDA_2: serialized USA function
+UnicornNVDA_2 -> USA_2: set magnification
+end group
+@enduml

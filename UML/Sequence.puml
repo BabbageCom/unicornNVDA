@@ -1,4 +1,4 @@
-@startuml Setup Connection Sequence Diagram
+@startuml Setup_Connection_Sequence_Diagram
 title Setup Connection between client and server 
 skinparam BoxPadding 40
 skinparam ParticipantPadding 20
@@ -17,14 +17,11 @@ participant Applib_Client
 participant Nvda_Client
 end box
 
-loop until connected
+loop "Server AppLib attempting connection with client Plugin"
     Nvda_Server -> Applib_Server: Open()
     Applib_Server -> RDP_Framework_Terminal_Services_Client: PTR_VirtualChannelOpenEx()
-    RDP_Framework_Terminal_Services_Client -> Plugin: TerminalOnNewChannelConnection()
-        alt "Fails in TerminalOnNewChannelConnection()"
-            RDP_Framework_Terminal_Services_Client --> Applib_Server: Result
-            Applib_Server --> Nvda_Server: Result
-        else "Suceeds in TerminalOnNewChannelConnection()"
+    RDP_Framework_Terminal_Services_Client --> Plugin: TerminalOnNewChannelConnection()
+        alt "Succeeds in TerminalOnNewChannelConnection()"
             Plugin -> Applib_Client: OnNewChannelConnection()
             Applib_Client -> Nvda_Client: OnNewChannelConnection()
             Nvda_Client -> Nvda_Client: transport_connected()
@@ -33,13 +30,17 @@ loop until connected
             Plugin --> RDP_Framework_Terminal_Services_Client: Result
             RDP_Framework_Terminal_Services_Client --> Applib_Server: Result
             Applib_Server --> Nvda_Server: Result
+        else "Fails in TerminalOnNewChannelConnection()"
+            Plugin -->  RDP_Framework_Terminal_Services_Client: error code
+            RDP_Framework_Terminal_Services_Client --> Applib_Server: error code
+            Applib_Server --> Nvda_Server: error code
         end
 end
-loop "Client checking for connection"
+loop "Client AppLib attempting connection with Plugin"
     Nvda_Client --> Applib_Client: Open
-    note right: "Happens asynchronously from the Server's Open()"
+    note right: "Happens asynchronously from the Server's Open() every 5 seconds"
     Applib_Client --> Plugin: Open 
-    note left: "Needs TerminalOnNewChannelConnection() to have succeeded"
+    note left: "Plugin always returns true if function has been succesfully called""
     Plugin -> Applib_Client: Result
     Applib_Client -> Nvda_Client: Result
 end

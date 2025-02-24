@@ -1,0 +1,124 @@
+@startuml UnicornDVCPlugin
+
+class UnicornNVDA.unicorn{
+    __init__()
+    registerCallbacks()
+    registerFunctions()
+    Initialize()
+    ActivateLicense()
+    DeactivateLicense()
+    Open()
+    Write()
+    Close()
+    Terminate()
+    SetCallbacks()
+}
+
+class UnicornDVCPlugin.UnicornDVCPlugin{
+    DllCanUnloadNow()
+    DllGetClassObject()
+    DllRegisterServer()
+    DllUnregisterServer()
+    DllInstall()
+}
+
+class UnicornDVCPlugin.CDVCPlugin{
+    FinalConstruct()
+    Initialize()
+    Connected()
+    Disconnected()
+    Terminated()
+    
+    OnDataReceived() 
+    OnClose()
+
+    OnNewChannelConnection()
+
+    DVCCNT_Open()
+    DVCCNT_Write()
+    DVCCNT_Close()
+}
+
+class UnicornDVCPlugin.RPCServer{
+    startServer()
+    stopServer()
+}
+
+class UnicornDVCPlugin.CTXSpecific.vdunicorn{
+    DriverOpen()
+    DriverClose()
+    DriverInfo()
+    DriverPoll()
+    DriverPoll()
+    DriverQueryInformation()
+    DriverSetInformation()
+    DriverGetLastError()
+    ICADataArrival()
+}
+note right of UnicornDVCPlugin.CTXSpecific.vdunicorn 
+    CTX requires different protocols to set up the neccessary connections.
+    vdunicorn contains these protocol functions.
+end note
+
+note bottom of UnicornDVCPlugin.CDVCPlugin
+    CDVCPlugin.h has 2 other class defined, namely: ListenerCallback and ChannelCallback.
+    Both have their respective functions: OnNewChannelConnection for the ListenerCallback; 
+    OnDataReceived() and OnClose() for the ChannelCallback.
+    Additionally, the CDVCPlugin.cpp has 3 DVCCNT Implementation of the applib.
+end note
+
+class UnicornDVCAppLib.UnicornDVCAppLib{
+    Unicorn_Open()
+    Unicorn_Write()
+    Unicorn_Close()
+    Unicorn_Terminate()
+    Unicorn_Initialize()
+    Unicorn_ActivateLicense()
+    Unicorn_DeactivateLicense()
+    Unicorn_IsLicensed()
+    Unicorn_SetCallbacks()
+}
+
+class UnicornDVCAppLib.DVCServer{
+    Open()
+    Write()
+    Reader()
+    Close()
+    WriteBytes()
+}
+
+class UnicornDVCAppLib.DVCClient{
+    Open()
+    Write()
+    Reader()
+    Close()
+    WriteBytes()
+    ..
+    DVCCNT_Connected()
+    DVCCNT_Disconnected()
+    DVCCNT_Terminated()
+    DVCCNT_OnNewChannelConnection()
+    DVCCNT_OnDataReceived()
+    DVCCNT_OnClose()
+
+}
+class UnicornDVCAppLib.RPCServer{
+    startServer()
+    stopServer()
+}
+
+class UnicornDVCAppLib.MessageSplitter{
+    Initialize()
+    Split()
+    Assemble()
+    GetStartSequence()
+    GetMsgLength()
+}
+
+note as UnicornDVCAppLib.Note0
+    UnicornDVC_CTX_AppLib has the same content as the UnicornDVCAppLib.
+    The only difference is DVCServer being different for CTX as different protocols need to be called.
+    Note that the DVCServerCTX.h's difference is only in the includes.
+end note
+
+@enduml
